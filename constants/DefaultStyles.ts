@@ -42,7 +42,7 @@ export default function StyleDefault({ colorScheme } : StyleDefaultProps) {
     },
     largeCard: {
       borderRadius: 16,
-      borderWidth: 1,
+      borderWidth: 4,
       borderColor: Colors[colorScheme ?? "light"].borderColor,
       backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground,
     },

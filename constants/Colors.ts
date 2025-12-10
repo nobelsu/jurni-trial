@@ -5,6 +5,7 @@ export const Colors = {
   light: {
     btnText: "white",
     primary: "red",
+    borderColor: "black",
 
     
     text: "#1a1a1a",
@@ -12,7 +13,6 @@ export const Colors = {
     lightestText: "#9ca3af",
     primaryBackground: "#f9fafb",
     secondaryBackground: "white",
-    borderColor: "#e5e7eb",
     primaryRed: "#c92422",
     primaryGreen: "#4da34c",
     primaryBlue: "#435ff2",
@@ -27,7 +27,8 @@ export const Colors = {
   },
   dark: {
     btnText: "black",
-    primary: "red",
+    primary: "blue",
+    borderColor: "white",
 
 
     text: "#e6e6e6",
@@ -35,7 +36,6 @@ export const Colors = {
     lightestText: "#505762",
     primaryBackground: "#1a1a1a",
     secondaryBackground: "black",
-    borderColor: "#2b2b2b",
     primaryRed: "#d5413f",
     primaryGreen: "#61af60",
     primaryBlue: "#667efa",

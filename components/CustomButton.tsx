@@ -16,7 +16,7 @@ export default function Btn({onPress, text, styleBtn, styleTxt}: BtnProps) {
         <TouchableOpacity 
             onPress={onPress} 
             style={{
-                backgroundColor: "red",
+                backgroundColor: Colors[colorScheme ?? "light"].primary,
                 padding: 15,
                 borderRadius: 12,
                 justifyContent: "center",
