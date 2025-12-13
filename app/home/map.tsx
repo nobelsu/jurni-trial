@@ -104,7 +104,7 @@ export default function MapScreen() {
     const [confirmed, setConfirmed] = useState<Boolean>(false);
 
 
-    const [phase, setPhase] = useState<number>(1);
+    const [phase, setPhase] = useState<number>(0);
 
     const windowWidth = Dimensions.get('window').width;
     const windowHeight = Dimensions.get('window').height;
