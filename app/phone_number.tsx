@@ -26,7 +26,7 @@ export default function PhoneNumberScreen() {
                     <View style={{flex: 5, paddingTop: 30,}}>
                         <Text style={defaultStyles.title}>Enter your mobile number</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We'll check if you have an account or help you create one</Text>
-                        <View style={{flexDirection: "row", marginTop: 20, gap: 5, height: 60}}>
+                        <View style={{flexDirection: "row", marginTop: 20, gap: 4, height: 60}}>
                             <View style={{flex: 4, justifyContent: "center", borderTopLeftRadius: 15, borderBottomLeftRadius: 15,  backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground}}>
                                 <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8,}}>
                                     <View style={{marginLeft: 20}}>
@@ -54,7 +54,7 @@ export default function PhoneNumberScreen() {
                             </TouchableOpacity>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Next" onPress={() => {
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={() => {
                                 if (cc+number == validPhoneNumber) {
                                     router.navigate('login/password');
                                 } else {

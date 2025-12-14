@@ -20,6 +20,10 @@ import { faMapPin } from '@fortawesome/free-solid-svg-icons/faMapPin'
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { faCircle } from '@fortawesome/free-solid-svg-icons/faCircle'
 import { faBars } from '@fortawesome/free-solid-svg-icons/faBars'
+import { faCarSide } from '@fortawesome/free-solid-svg-icons/faCarSide'
+import { faTruckPickup }from '@fortawesome/free-solid-svg-icons/faTruckPickup'
+import { faCaravan }from '@fortawesome/free-solid-svg-icons/faCaravan'
+import { faCar }from '@fortawesome/free-solid-svg-icons/faCar'
 
 export default function MapScreen() {
     const colorScheme = useColorScheme();
@@ -54,7 +58,8 @@ export default function MapScreen() {
             "passengers": "4", 
             "price_new": "£3.00", 
             "price_ori": "£5.00",
-            "description": "Faster speeds"
+            "description": "Faster speeds",
+            "icon": faCarSide,
         },
         {
             "id": 1, 
@@ -64,7 +69,8 @@ export default function MapScreen() {
             "passengers": "4", 
             "price_new": "£2.50", 
             "price_ori": "£4.00",
-            "description": "The original"
+            "description": "The original",
+            "icon": faTruckPickup,
         }, 
         {
             "id": 2, 
@@ -74,7 +80,8 @@ export default function MapScreen() {
             "passengers": "6", 
             "price_new": "£8.00", 
             "price_ori": "£12.50",
-            "description": "Larger sizes"
+            "description": "Larger sizes",
+            "icon": faCaravan,
         }
     ]
 
@@ -91,10 +98,10 @@ export default function MapScreen() {
     const [result, setResult] = useState<any>(null);
     const [loaded, setLoaded] = useState<Boolean>(false);
 
-    const [btnText, setBtnText] = useState<string>("Search destination");
+    const [btnText, setBtnText] = useState<string>("search destination");
     const [title0, setTitle0] = useState<string>("Set your destination");
     const [subtitle0, setSubtitle0] = useState<string>("Where would you like to go, Nobel?")
-    const [pickupInput, setPickupInput] = useState<string>("Jln. Jendral Sudirman Kav. 52-53");
+    const [pickupInput, setPickupInput] = useState<string>("123 Industrial Park Rd, Springfield");
     const [destInput, setDestInput] = useState<string>("");
     const [data, setData] = useState<Array<any>>(destinationData);
 
@@ -123,17 +130,17 @@ export default function MapScreen() {
 
     useEffect(() => {
         if (!pickupInput) {
-            setBtnText("Search pickup")
+            setBtnText("search pickup")
             setTitle0("Set your pickup")
             setSubtitle0("Where'd you like to meet your driver?")
             setData(pickupData)
         } else if (!destInput) {
-            setBtnText("Search destination")
+            setBtnText("search destination")
             setTitle0("Set your destination")
             setSubtitle0("Where'd you like to go today?")
             setData(destinationData)
         } else {
-            setBtnText("Confirm details")
+            setBtnText("confirm details")
             setTitle0("Plan your ride")
             setSubtitle0("Ready for a Jurni?")
             setData(destinationData)
@@ -229,7 +236,7 @@ export default function MapScreen() {
                                         else {
                                             setPhase(0);
                                         }
-                                    }} styleTxt={{fontWeight: 600,}} text={confirmed ? "Cancel" : "Return"}/>
+                                    }} text={confirmed ? "cancel" : "return"}/>
                                 </View>
                             </BottomSheetFooter>
                         )
@@ -240,12 +247,12 @@ export default function MapScreen() {
                                     <Btn onPress={() => {
                                         setPhase(3);
                                         bottomSheetRef.current?.snapToIndex(0);
-                                    }} text="Request Ride"/>
+                                    }} text="request ride"/>
                                     <Btn onPress={() => {setPhase(1)}} styleTxt={{color: Colors[colorScheme ?? "light"].primary,}} styleBtn={{
                                         borderWidth: 1,
                                         borderColor: Colors[colorScheme ?? "light"].primary,
                                         backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
-                                    }} text="Return"/>
+                                    }} text="return"/>
                                 </View>
                             </BottomSheetFooter>
                         )
@@ -255,7 +262,7 @@ export default function MapScreen() {
                             <View style={{width: "100%", paddingHorizontal: 20, backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, paddingBottom: 40,}}>
                                 <Btn onPress={() => {
                                     setPhase(0);
-                                }} styleTxt={{fontWeight: 600,}} text={"Cancel"}/>
+                                }} styleTxt={{fontWeight: 600,}} text={"cancel"}/>
                             </View>
                         </BottomSheetFooter>
                     )
@@ -369,7 +376,7 @@ export default function MapScreen() {
                                     }}
                                     style={{...defaultStyles.largeCard, height: 180, width: "100%", marginTop: 20, padding: 20, borderColor: confirmed ? Colors[colorScheme ?? "light"].primary : Colors[colorScheme ?? "light"].borderColor, backgroundColor: confirmed ? Colors[colorScheme ?? "light"].secondaryBackground : Colors[colorScheme ?? "light"].primaryBackground}}>
                                         <View style={{flex: 2, justifyContent: "center", alignItems: "center",}}>
-                                            <Text style={{color: Colors[colorScheme ?? "light"].primaryText}}>ICON HERE</Text>
+                                            <FontAwesomeIcon icon={rideTypeData[selected].icon} size={100} color={Colors[colorScheme ?? "light"].primary}/>
                                         </View>
                                         <View style={{flex: 1, flexDirection: "row"}}>
                                             <View style={{flex: 2}}>
@@ -408,7 +415,7 @@ export default function MapScreen() {
                                         }}style={{height: 80, marginHorizontal: 20, marginVertical: 5,}}>
                                             <View style={{flex: 1, flexDirection: "row", padding: 10,}}>
                                                 <View style={{flex: 3, justifyContent: "center", alignItems: "center"}}>
-                                                    <Text style={{color: Colors[colorScheme ?? "light"].primaryText}}>ICON HERE</Text>
+                                                    <FontAwesomeIcon icon={item.icon} size={40} color={Colors[colorScheme ?? "light"].primary}/>
                                                 </View>
                                                 <View style={{flex: 6, justifyContent: "center", paddingLeft: 10,}}>
                                                     <View style={{flexDirection: "row", gap: 8, alignItems: "center",}}>
@@ -486,7 +493,10 @@ export default function MapScreen() {
                         :
                             <BottomSheetView style={{height: windowHeight-265, width: "100%", backgroundColor: Colors[colorScheme ?? "light"].primaryBackground}}>
                                 <View style={{height: 390, width: "100%", justifyContent: "center", alignItems: "center"}}>
-                                    <Text style={{color: Colors[colorScheme ?? "light"].primaryText}}>LOADING ANIMATION HERE</Text>
+                                    <View style={{height: 300, width: 300, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, justifyContent: "center", alignItems: "center", borderRadius: 50,}}>
+                                        <FontAwesomeIcon icon={faCar} size={100} color={Colors[colorScheme ?? "light"].primary} />
+                                        <Text style={{...defaultStyles.title, fontSize: 16, color: Colors[colorScheme ?? "light"].secondaryText, marginTop: 30,}}>Finding a ride...</Text>
+                                    </View>
                                 </View>
                                 <View style={{height: windowHeight-265-390, width: "100%", justifyContent: "center", alignItems: "center", paddingHorizontal: 20,}}>
                                     <Text style={{...defaultStyles.title, fontSize: 14}}>Did you know?</Text>

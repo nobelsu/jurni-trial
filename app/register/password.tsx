@@ -35,7 +35,7 @@ export default function RegisterPasswordScreen() {
                             </TouchableOpacity>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Next" onPress={() => {router.navigate('register/confirm');}} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={() => {router.navigate('register/confirm');}} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

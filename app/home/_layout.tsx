@@ -11,7 +11,7 @@ export default function HomeStackLayout() {
       drawerActiveTintColor: Colors[colorScheme ?? "light"].primary,
       drawerLabelStyle: {
         color: Colors[colorScheme ?? "light"].secondaryText,
-        fontFamily: "Outline_400Regular",
+        fontFamily: "Outfit_600SemiBold",
         fontSize: 14,
         textAlign: "center",
       },
@@ -22,10 +22,10 @@ export default function HomeStackLayout() {
       drawerType: "front"
     }} >
         <Drawer.Screen name="map" options={{
-          drawerLabel: 'Ride',
+          drawerLabel: 'ride',
         }}/>
         <Drawer.Screen name="profile" options={{
-          drawerLabel: 'Profile',
+          drawerLabel: 'profile',
         }}/>
     </Drawer>
   );

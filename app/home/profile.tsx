@@ -35,7 +35,7 @@ export default function ProfileScreen() {
 
                 <Text style={{...defaultStyles.title, marginBottom: 8}}>Page not found.</Text>
                 <Text style={{...defaultStyles.subtitle, marginBottom: 60,}}>This is not an actual page...</Text>
-                <Btn text="Return home" onPress={() => {router.navigate("/")}}/>
+                <Btn text="return home" onPress={() => {router.navigate("/")}}/>
             </View>
         </SafeAreaView>
     )
