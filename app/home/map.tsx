@@ -213,7 +213,7 @@ export default function MapScreen() {
                         return (
                             <BottomSheetFooter {...props}>
                                 <View style={{width: "100%", paddingHorizontal: 20, backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, paddingBottom: 40,}}>
-                                    <Btn styleBtn={{}} styleTxt={{ fontWeight: 600,}} text={btnText} onPress={() => {
+                                    <Btn styleBtn={{}} text={btnText} onPress={() => {
                                         if (destInput && pickupInput) {
                                             setPhase(1);
                                         } 
@@ -262,7 +262,7 @@ export default function MapScreen() {
                             <View style={{width: "100%", paddingHorizontal: 20, backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, paddingBottom: 40,}}>
                                 <Btn onPress={() => {
                                     setPhase(0);
-                                }} styleTxt={{fontWeight: 600,}} text={"cancel"}/>
+                                }} text={"cancel"}/>
                             </View>
                         </BottomSheetFooter>
                     )
@@ -505,9 +505,7 @@ export default function MapScreen() {
                                 </View>
                             </BottomSheetView>
                 }
-
             </BottomSheetModal>
         </GestureHandlerRootView>
-        
     )
 }

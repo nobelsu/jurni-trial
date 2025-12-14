@@ -1,6 +1,4 @@
 import { Stack } from 'expo-router';
-import { useColorScheme } from 'react-native';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Outfit_100Thin } from '@expo-google-fonts/outfit/100Thin';
 import { Outfit_200ExtraLight } from '@expo-google-fonts/outfit/200ExtraLight';

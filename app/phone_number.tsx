@@ -60,7 +60,6 @@ export default function PhoneNumberScreen() {
                                 } else {
                                     router.navigate('register/email');
                                 }
-                                
                                 }} />
                         </View>
                     </View>

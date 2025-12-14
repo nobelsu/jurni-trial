@@ -10,7 +10,6 @@ export default function GettingStartedScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const defaultStyles = StyleDefault({ colorScheme });
-    const windowWidth = Dimensions.get('window').width;
     const windowHeight = Dimensions.get('window').height;
 
     return (
