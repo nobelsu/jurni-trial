@@ -60,7 +60,7 @@ jurni-trial/
 ├─ app/                # Main app logic & screens 
 ├─ assets/             # Images & static resources
 ├─ components/         # Reusable UI components (Btn)
-├─ constants/          # Shared values / config (Colors, DefaultStyles)
+├─ constants/          # Shared values / config (Colors, DefaultStyles, MockData)
 ├─ app.json            # Expo app configuration
 ├─ package.json        # Dependencies & scripts
 ├─ package-lock.json   # Locked dependency tree
