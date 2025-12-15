@@ -3,8 +3,6 @@
 A TypeScript-based mobile app prototype / trial built with Expo (React Native).
 This repository contains an app scaffold with `app/`, `components/`, `assets/`, and TypeScript configuration.
 
----
-
 ## Table of contents
 
 * [About](#about)
@@ -16,29 +14,21 @@ This repository contains an app scaffold with `app/`, `components/`, `assets/`, 
 * [Troubleshooting](#troubleshooting)
 * [License](#license)
 
----
-
 ## About
 
 `jurni-trial` is a lightweight TypeScript mobile app project. It was built as a trial task for Jurni Ride, a Birmingham-based ride-hailing start up.
 
----
-
 ## Tech stack
 
-* React Native (Expo) — inferred from presence of `app.json`. 
+* React Native (Expo)
 * TypeScript (100% TypeScript language in repo). 
 * Node.js / npm for package management
-
----
 
 ## Prerequisites
 
 * Node.js (LTS recommended)
 * npm 
 * Expo
-
----
 
 ## Getting started (local development)
 
@@ -63,8 +53,6 @@ npx expo start
 
 This opens the Expo Dev Tools — run on an emulator or scan the QR code with the Expo Go app on your phone.
 
----
-
 ## Project structure
 
 ```
@@ -82,8 +70,6 @@ jurni-trial/
 ├─ .gitignore          # Files ignored by Git
 ```
 
----
-
 ## Contributing
 
 1. Fork the repo
@@ -98,12 +84,8 @@ Tips:
 * Add TypeScript types and prefer `readonly` for immutable structures.
 * Include unit tests for business logic where feasible.
 
----
-
 ## Troubleshooting
 * Use `npx expo-doctor`
-
----
 
 ## License
 
