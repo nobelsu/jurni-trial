@@ -33,6 +33,7 @@ export default function RootStackLayout() {
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="home" />
+      <Stack.Screen name="otp" />
     </Stack>
   );
 }

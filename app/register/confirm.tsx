@@ -2,16 +2,36 @@ import { View, Text, useColorScheme, KeyboardAvoidingView, Platform, TextInput, 
 import Btn from '../../components/CustomButton';
 import StyleDefault from '../../constants/DefaultStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useGlobalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faKey } from '@fortawesome/free-solid-svg-icons/faKey'
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 
-export default function RegisterPasswordScreen() {
+import auth, { linkWithCredential } from '@react-native-firebase/auth';
+
+import { useState } from 'react';
+
+export default function ConfirmPasswordScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const defaultStyles = StyleDefault({ colorScheme });
+
+    const user = auth().currentUser;
+
+    const params = useGlobalSearchParams<{ email: string, password : string }>();
+
+    const [passwordConfirm, setPasswordConfirm] = useState<string>("");
+
+    async function handleAddPassword() {
+        if (params.password == passwordConfirm) {
+            if (!user) return;
+            await linkWithCredential(user, auth.EmailAuthProvider.credential(params.email, params.password));
+            router.navigate('home/map');
+        } else {
+            console.log("Passwords do not match");
+        }
+    }
 
     return (
         <TouchableWithoutFeedback onPress={() => {Keyboard.dismiss()}}>
@@ -23,7 +43,7 @@ export default function RegisterPasswordScreen() {
                         <View style={{marginTop: 20, height: 60,}}>
                             <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, gap: 12,}}>
                                 <FontAwesomeIcon icon={faKey} size={14} color={Colors[colorScheme ?? "light"].secondaryText}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} value={passwordConfirm} onChangeText={setPasswordConfirm}/>
                             </View>
                         </View>
                     </View>
@@ -35,7 +55,7 @@ export default function RegisterPasswordScreen() {
                             </TouchableOpacity>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="register" onPress={() => {router.navigate('home/map');}} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="register" onPress={handleAddPassword} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

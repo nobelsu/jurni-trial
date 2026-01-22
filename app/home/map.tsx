@@ -1,4 +1,4 @@
-import { View, Text, useColorScheme, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, useColorScheme, TouchableOpacity } from 'react-native';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
 import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';

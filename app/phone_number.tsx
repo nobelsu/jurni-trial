@@ -7,7 +7,7 @@ import { Colors } from '../constants/Colors';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone'
 import { useState } from 'react';
-import { validPhoneNumber } from '../constants/MockData';
+import { validPhoneNumber, } from '../constants/MockData';
 import BackBtn from '../components/BackButton';
 
 export default function PhoneNumberScreen() {
@@ -70,11 +70,7 @@ export default function PhoneNumberScreen() {
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
                             <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={() => {
-                                if (cc+number == validPhoneNumber) {
-                                    router.navigate('login/password');
-                                } else {
-                                    router.navigate('register/email');
-                                }
+                                router.push({pathname: '/otp', params: { number: '+'+cc+number }});
                                 }} />
                         </View>
                     </View>
