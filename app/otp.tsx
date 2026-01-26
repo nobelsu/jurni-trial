@@ -5,13 +5,23 @@ import { useColorScheme } from 'react-native';
 import StyleDefault from '../constants/DefaultStyles';
 import { Colors } from '../constants/Colors';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faEnvelope } from '@fortawesome/free-solid-svg-icons/faEnvelope'
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 import Btn from '../components/CustomButton';
 import { useEffect, useRef, useState } from 'react';
 
 import { onAuthStateChanged, signInWithPhoneNumber } from '@react-native-firebase/auth';
 import auth from '@react-native-firebase/auth';
+
+import {
+  CodeField,
+  Cursor,
+  useBlurOnFulfill,
+  useClearByFocusCell,
+} from 'react-native-confirmation-code-field';
+
+import { StyleSheet } from 'react-native';
+import BackBtn from '../components/BackButton';
+import Error from '../components/Error';
 
 export default function OtpScreen() {
     const router = useRouter();
@@ -24,12 +34,16 @@ export default function OtpScreen() {
     const [confirm, setConfirm] = useState<any>(null);
     const [user, setUser] = useState<any>();
 
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
+
     function handleAuthStateChanged(user: any) {
         setUser(user);
         console.log(user);
     }
 
     useEffect(() => {
+        auth().settings.appVerificationDisabledForTesting = false
         async function sendCode() {
             const confirmation = await signInWithPhoneNumber(auth(), number);
             setConfirm(confirmation);
@@ -41,7 +55,28 @@ export default function OtpScreen() {
     }, []);
 
     async function confirmCode() {
+        setErrorMessage("");
+        setErrorVisibility(false);
+
         try {
+            if (!code) {
+                setErrorMessage("Verification code is required.");
+                setErrorVisibility(true);
+                return;
+            }
+
+            if (!/^\d+$/.test(code)) {
+                setErrorMessage("Verification code must contain digits only.");
+                setErrorVisibility(true);
+                return;
+            }
+
+            if (code.length < 4) {
+                setErrorMessage("Invalid verification code.");
+                setErrorVisibility(true);
+                return;
+            }
+
             await confirm.confirm(code);
 
             const email = user.email;
@@ -53,9 +88,36 @@ export default function OtpScreen() {
                 router.navigate('register/email');
             }
         } catch (error) {
-            setMessage("Invalid code")
+            setErrorMessage("Verification failed. Please check the code and try again.");
+            setErrorVisibility(true);
         }
     }
+
+        const ref = useBlurOnFulfill({value: code, cellCount: 6});
+        const [props, getCellOnLayoutHandler] = useClearByFocusCell({
+            value: code,
+            setValue: setCode,
+        });
+    
+        const styles = StyleSheet.create({
+            codeFieldRoot: {width: "100%",},
+            cell: {
+                width: 50,
+                height: 50,
+                lineHeight: 45,
+                fontSize: 20,
+                borderWidth: 1,
+                borderColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                textAlign: 'center',
+                color: Colors[colorScheme ?? "light"].secondaryText,
+                fontFamily: 'Outfit_400Regular',
+                backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                borderRadius: 12,
+            },
+            focusCell: {
+                borderColor: Colors[colorScheme ?? "light"].secondaryText,
+            },
+        });
 
     return (
         <TouchableWithoutFeedback onPress={() => {Keyboard.dismiss()}}>
@@ -64,28 +126,59 @@ export default function OtpScreen() {
                 <KeyboardAvoidingView style={{flex: 1,}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
                     <View style={{flex: 5, paddingTop: 30,}}>
-                        <Text style={defaultStyles.title}>Enter your OTP code</Text>
-                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We've sent you an OTP code</Text>
-                        <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, gap: 12,}}>
-                                <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[colorScheme ?? "light"].secondaryText}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} placeholder='Code' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} keyboardType='email-address' autoCapitalize='none' value={code} onChangeText={setCode}/>
-                            </View>
+                        <Text style={defaultStyles.title}>Verify your phone number</Text>
+                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Enter the security code sent to <Text style={{fontFamily: "Outfit_600SemiBold"}}>{number}</Text></Text>
+                        <View style={{marginTop: 20, alignItems: "center"}}>
+                            <CodeField  
+                                ref={ref}
+                                {...props}
+                                // Use `caretHidden={false}` when users can't paste a text value, because context menu doesn't appear
+                                autoFocus={true}
+                                value={code}
+                                onChangeText={setCode}
+                                cellCount={6}
+                                rootStyle={styles.codeFieldRoot}
+                                keyboardType="number-pad"
+                                textContentType="oneTimeCode"
+                                testID="my-code-input"
+                                renderCell={({index, symbol, isFocused}) => (
+                                <Text
+                                    key={index}
+                                    style={[
+                                        {
+                                            width: 50,
+                                            height: 50,
+                                            lineHeight: 45,
+                                            fontSize: 20,
+                                            borderWidth: 1,
+                                            borderColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                            textAlign: 'center',
+                                            color: Colors[colorScheme ?? "light"].secondaryText,
+                                            fontFamily: 'Outfit_400Regular',
+                                            backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                            borderRadius: 12,
+                                            }, 
+                                        isFocused && {
+                                            borderColor: Colors[colorScheme ?? "light"].secondaryText,
+                                        }
+                                    ]}
+                                    onLayout={getCellOnLayoutHandler(index)}>
+                                    {symbol || (isFocused && <Cursor />)}
+                                </Text>
+                                )}
+                            />
                         </View>
+                        {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <TouchableOpacity onPress={() => {router.back()}} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].primary}}>
-                                <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].btnText}/>
-                            </TouchableOpacity>
+                            <BackBtn onPress={() => {router.push("/phone_number")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
                             <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="confirm" onPress={confirmCode} />
                         </View>
                     </View>
-
-                    <Text style={defaultStyles.title}> {message} </Text>
                 </KeyboardAvoidingView>
             </SafeAreaView>
         </TouchableWithoutFeedback>

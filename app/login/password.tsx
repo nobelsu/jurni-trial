@@ -10,6 +10,8 @@ import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 
 import { useState } from 'react';
 import auth, { signInWithEmailAndPassword } from '@react-native-firebase/auth';
+import BackBtn from '../../components/BackButton';
+import Error from '../../components/Error';
 
 export default function LoginPasswordScreen() {
     const router = useRouter();
@@ -19,12 +21,18 @@ export default function LoginPasswordScreen() {
     const email = useGlobalSearchParams<{ email: string }>().email;
     const [password, setPassword] = useState<string>("");
 
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
+
     async function handleLogin() {
         try {
+            setErrorMessage("");
+            setErrorVisibility(false);
             await signInWithEmailAndPassword(auth(), email, password);
             router.navigate('home/map');
         } catch(error) {
-            console.log("Error logging in: ", error);
+            setErrorMessage("Please check your password and try again.");
+            setErrorVisibility(true);
         }
     }
 
@@ -41,13 +49,12 @@ export default function LoginPasswordScreen() {
                                 <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} value={password} onChangeText={setPassword}/>
                             </View>
                         </View>
+                        {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <TouchableOpacity onPress={() => {router.back()}} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].primary}}>
-                                <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].btnText}/>
-                            </TouchableOpacity>
+                            <BackBtn onPress={() => {router.push("/phone_number")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
                             <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="login" onPress={handleLogin} />

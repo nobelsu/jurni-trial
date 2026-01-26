@@ -7,16 +7,62 @@ import { Colors } from '../constants/Colors';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone'
 import { useState } from 'react';
-import { validPhoneNumber, } from '../constants/MockData';
 import BackBtn from '../components/BackButton';
+import Error from '../components/Error';
 
 export default function PhoneNumberScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const defaultStyles = StyleDefault({ colorScheme });
 
-    const [cc, setCC] = useState<string>("44");
-    const [number, setNumber] = useState<string>("");
+    const [ccInput, setCC] = useState<string>("44");
+    const [numberInput, setNumber] = useState<string>("");
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
+
+    function validatePhoneNumber() {
+        setErrorMessage("");
+        setErrorVisibility(false);
+
+        const cc = ccInput.replace(/[^0-9]/g, "");
+        const number = numberInput.replace(/[^0-9]/g, "");
+
+        if (!cc) {
+            setErrorMessage("Country code is required.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (!number) {
+            setErrorMessage("Phone number is required.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (!/^\d{1,3}$/.test(cc) || cc.startsWith("0")) {
+            setErrorMessage("Invalid country code.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (!/^\d+$/.test(number) || number.length < 2) {
+            setErrorMessage("Invalid phone number.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        const totalLength = cc.length + number.length;
+        if (totalLength < 7 || totalLength > 15) {
+            setErrorMessage("Invalid phone number length.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        router.push({
+            pathname: "/otp",
+            params: { number: "+" + cc + number },
+        });
+    }
 
     return (
         <TouchableWithoutFeedback onPress={() => {Keyboard.dismiss()}}>
@@ -50,7 +96,7 @@ export default function PhoneNumberScreen() {
                                         }} 
                                         placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} 
                                         keyboardType='number-pad' 
-                                        value={cc} 
+                                        value={ccInput} 
                                         onChangeText={setCC} 
                                         placeholder="CC" 
                                         selectionColor={Colors[colorScheme ?? "light"].secondaryText}
@@ -60,17 +106,18 @@ export default function PhoneNumberScreen() {
                                 </View>
                             </View>
                             <View style={{flex: 9, alignItems: "center", justifyContent: "center", borderTopRightRadius: 15, borderBottomRightRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground}}>
-                                <TextInput style={{width: "90%", height: "80%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} keyboardType='number-pad' placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} value={number} onChangeText={setNumber} placeholder='Phone Number' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText}/>
+                                <TextInput style={{width: "90%", height: "80%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} keyboardType='number-pad' placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} value={numberInput} onChangeText={setNumber} placeholder='Phone Number' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText}/>
                             </View>
                         </View>
+                        {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <BackBtn />
+                            <BackBtn onPress={() => {router.navigate("/")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
                             <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={() => {
-                                router.push({pathname: '/otp', params: { number: '+'+cc+number }});
+                                validatePhoneNumber()
                                 }} />
                         </View>
                     </View>

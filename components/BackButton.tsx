@@ -5,11 +5,14 @@ import { useRouter } from "expo-router"
 import { Colors } from "../constants/Colors"
 import { useColorScheme } from "react-native"
 
-export default function BackBtn() {
+interface BackBtnProps {
+    onPress: () => void;
+}
+
+export default function BackBtn({onPress}: BackBtnProps) {
     const colorScheme = useColorScheme();
-    const router = useRouter();
     return (
-        <TouchableOpacity onPress={() => {router.back()}} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].primary}}>
+        <TouchableOpacity onPress={onPress} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].primary}}>
             <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].btnText}/>
         </TouchableOpacity>
     )

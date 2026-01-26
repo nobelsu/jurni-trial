@@ -10,6 +10,8 @@ import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 import auth, { linkWithCredential } from '@react-native-firebase/auth';
 import Btn from '../../components/CustomButton';
 import { useEffect, useState }  from 'react';
+import BackBtn from '../../components/BackButton';
+import Error from '../../components/Error';
 
 export default function RegisterEmailScreen() {
     const router = useRouter();
@@ -18,8 +20,32 @@ export default function RegisterEmailScreen() {
 
     const [email, setEmail] = useState<string>("");
 
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
+
     async function addEmail() {
-        router.push({pathname: 'register/password', params: {email: email}});
+        setErrorMessage("");
+        setErrorVisibility(false);
+
+        const trimmedEmail = email.trim();
+
+        if (!trimmedEmail) {
+            setErrorMessage("Email is required.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        // Practical RFC-friendly email regex (not overly strict)
+        const emailRegex =
+            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+        if (!emailRegex.test(trimmedEmail)) {
+            setErrorMessage("Please enter a valid email address.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        router.push({pathname: 'register/password', params: {email: trimmedEmail}});
     }
 
     return (
@@ -35,13 +61,12 @@ export default function RegisterEmailScreen() {
                                 <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} placeholder='Email' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
                             </View>
                         </View>
+                        {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <TouchableOpacity onPress={() => {router.back()}} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].primary}}>
-                                <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].btnText}/>
-                            </TouchableOpacity>
+                            <BackBtn onPress={() => {router.push("/phone_number")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
                             <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={addEmail} />

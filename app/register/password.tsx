@@ -9,6 +9,8 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 
 import { useState, useEffect } from 'react';
+import BackBtn from '../../components/BackButton';
+import Error from '../../components/Error';
 
 export default function RegisterPasswordScreen() {
     const router = useRouter();
@@ -17,9 +19,45 @@ export default function RegisterPasswordScreen() {
 
     const [password, setPassword] = useState<string>("");
 
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
+
     const email = useGlobalSearchParams<{ email: string }>().email;
 
     async function handleConfirm() {
+        setErrorMessage("");
+        setErrorVisibility(false);
+
+        if (!password) {
+            setErrorMessage("Password is required.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (password.length < 8) {
+            setErrorMessage("Password must be at least 8 characters long.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (/\s/.test(password)) {
+            setErrorMessage("Password must not contain spaces.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (!/[A-Za-z]/.test(password)) {
+            setErrorMessage("Password must contain at least one letter.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        if (!/[0-9]/.test(password)) {
+            setErrorMessage("Password must contain at least one number.");
+            setErrorVisibility(true);
+            return;
+        }
+
         router.push({pathname: 'register/confirm', params: { email: email, password: password }});
     }
 
@@ -36,13 +74,12 @@ export default function RegisterPasswordScreen() {
                                 <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} value={password} onChangeText={setPassword}/>
                             </View>
                         </View>
+                        {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <TouchableOpacity onPress={() => {router.back()}} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].primary}}>
-                                <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].btnText}/>
-                            </TouchableOpacity>
+                            <BackBtn onPress={() => {router.push("register/email")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
                             <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={handleConfirm} />
