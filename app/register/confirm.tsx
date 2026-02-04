@@ -49,9 +49,9 @@ export default function ConfirmPasswordScreen() {
                         <Text style={defaultStyles.title}>Confirm your password</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Re-enter your password to make sure it's correct</Text>
                         <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, gap: 12,}}>
-                                <FontAwesomeIcon icon={faKey} size={14} color={Colors[colorScheme ?? "light"].secondaryText}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} value={passwordConfirm} onChangeText={setPasswordConfirm}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faKey} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} value={passwordConfirm} onChangeText={setPasswordConfirm}/>
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
@@ -62,7 +62,7 @@ export default function ConfirmPasswordScreen() {
                             <BackBtn onPress={() => {router.push("register/password")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="register" onPress={handleAddPassword} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Register" onPress={handleAddPassword} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

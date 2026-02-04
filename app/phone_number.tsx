@@ -72,17 +72,17 @@ export default function PhoneNumberScreen() {
                         <Text style={defaultStyles.title}>Enter your mobile number</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We'll check if you have an account or help you create one</Text>
                         <View style={{flexDirection: "row", marginTop: 20, gap: 4, height: 60}}>
-                            <View style={{flex: 4, justifyContent: "center", borderTopLeftRadius: 15, borderBottomLeftRadius: 15,  backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground}}>
+                            <View style={{flex: 4, justifyContent: "center", borderTopLeftRadius: 15, borderBottomLeftRadius: 15,  backgroundColor: Colors[colorScheme ?? "light"].bg}}>
                                 <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8,}}>
                                     <View style={{marginLeft: 20}}>
-                                        <FontAwesomeIcon icon={faPhone} size={14} color={Colors[colorScheme ?? "light"].secondaryText}/>
+                                        <FontAwesomeIcon icon={faPhone} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
                                     </View>
                                     
                                     <View style={{ height: "100%", justifyContent: "center", alignItems: "center", flexDirection: "row", marginLeft: 10, gap: 5,}}>
                                         <Text style={{ 
                                             fontSize: 16, 
                                             fontFamily:'Outfit_400Regular', 
-                                            color: Colors[colorScheme ?? "light"].secondaryText
+                                            color: Colors[colorScheme ?? "light"].textMuted
                                         }}
                                         >
                                             +
@@ -92,31 +92,31 @@ export default function PhoneNumberScreen() {
                                             fontFamily:'Outfit_400Regular', 
                                             height: "100%", 
                                             width: 40, 
-                                            color: Colors[colorScheme ?? "light"].secondaryText
+                                            color: Colors[colorScheme ?? "light"].textMuted
                                         }} 
-                                        placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} 
+                                        placeholderTextColor={Colors[colorScheme ?? "light"].textMuted} 
                                         keyboardType='number-pad' 
                                         value={ccInput} 
                                         onChangeText={setCC} 
                                         placeholder="CC" 
-                                        selectionColor={Colors[colorScheme ?? "light"].secondaryText}
+                                        selectionColor={Colors[colorScheme ?? "light"].textMuted}
                                         />
                                     </View>
                                     
                                 </View>
                             </View>
-                            <View style={{flex: 9, alignItems: "center", justifyContent: "center", borderTopRightRadius: 15, borderBottomRightRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground}}>
-                                <TextInput style={{width: "90%", height: "80%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} keyboardType='number-pad' placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} value={numberInput} onChangeText={setNumber} placeholder='Phone Number' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText}/>
+                            <View style={{flex: 9, alignItems: "center", justifyContent: "center", borderTopRightRadius: 15, borderBottomRightRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg}}>
+                                <TextInput style={{width: "90%", height: "80%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} keyboardType='number-pad' placeholderTextColor={Colors[colorScheme ?? "light"].textDull} value={numberInput} onChangeText={setNumber} placeholder='Phone Number' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted}/>
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <BackBtn onPress={() => {router.navigate("/")}}/>
+                            <BackBtn onPress={() => {router.back()}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="next" onPress={() => {
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Next" onPress={() => {
                                 validatePhoneNumber()
                                 }} />
                         </View>

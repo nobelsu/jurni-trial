@@ -1,14 +1,15 @@
-import { View, Text, useColorScheme, TouchableOpacity } from 'react-native';
+import { View, Text, useColorScheme, TouchableOpacity, Button, TouchableHighlight } from 'react-native';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
-import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
-import BottomSheetModal, { BottomSheetTextInput, BottomSheetView, BottomSheetScrollView, BottomSheetFooter} from '@gorhom/bottom-sheet';
+import BottomSheetModal, { BottomSheetTextInput, BottomSheetView, BottomSheetScrollView, BottomSheetFooter, WINDOW_HEIGHT} from '@gorhom/bottom-sheet';
 import StyleDefault from '../../constants/DefaultStyles';
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect, useLayoutEffect, } from 'react';
 import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Dimensions } from 'react-native';
+import { setAccessToken, MapView, Camera, UserLocation, LineLayer, ShapeSource, Viewport, LocationPuck } from '@rnmapbox/maps';
+import axios from 'axios';
 
 import Btn from '../../components/CustomButton';
 import { pickupData, destinationData, rideTypeData, rideSummaryData,  } from '../../constants/MockData';
@@ -23,6 +24,39 @@ import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { faCircle } from '@fortawesome/free-solid-svg-icons/faCircle'
 import { faBars } from '@fortawesome/free-solid-svg-icons/faBars'
 import { faCar } from '@fortawesome/free-solid-svg-icons/faCar'
+import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons/faLocationCrosshairs'
+import { SafeAreaView } from 'react-native-safe-area-context';
+import BottomSheet from '@gorhom/bottom-sheet';
+
+const MAPBOX_ACCESS_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+setAccessToken(MAPBOX_ACCESS_TOKEN);
+
+type Position = [number, number]
+
+const Route = ({ coordinates }: { coordinates: Position[] }) => {
+  const features: GeoJSON.FeatureCollection = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'a-feature',
+          geometry: {
+            type: 'LineString',
+            coordinates,
+          },
+          properties: {},
+        } as const,
+      ],
+    };
+  }, [coordinates]);
+  return (
+    <ShapeSource id={'shape-source-id-0'} shape={features}>
+      <LineLayer id={'line-layer'} style={{lineColor: "red", lineWidth: 5,}} />
+    </ShapeSource>
+  );
+};
 
 export default function MapScreen() {
     const colorScheme = useColorScheme();
@@ -56,32 +90,121 @@ export default function MapScreen() {
     const windowWidth = Dimensions.get('window').width;
     const windowHeight = Dimensions.get('window').height;
 
-    useEffect(() => {
-        async function getCurrentLocation() {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                setErrorMsg('Permission to access location was denied');
-                return;
-            }
-            let location = await Location.getCurrentPositionAsync({});
-            setLocation(location);
+    const [coordinates, setCoordinates] = useState<Position[]>([]);
+    
+    const [showCrosshair, setShowCrosshair] = useState<Boolean>(true);
+
+    const [pickupCoords, setPickupCoords] = useState<Position>();
+    const [destCoords, setDestCoords] = useState<Position>();
+
+    const [followUser, setFollowUser] = useState<boolean>(true)
+
+    async function getCurrentLocation() {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+            setErrorMsg('Permission to access location was denied');
+            return;
         }
+        let location = await Location.getCurrentPositionAsync({});
+        setLocation(location);
+    }
+    
+    async function obtainAddress(coords: Position, flag: Boolean) {
+        try {
+            const url = "https://api.mapbox.com/search/geocode/v6/reverse";
+            const p = axios.get(url, {
+                params: {
+                    access_token: MAPBOX_ACCESS_TOKEN,
+                    longitude: coords[0],
+                    latitude: coords[1],
+                }
+            })
+            p.then(res => {
+                if (flag) {
+                    setDestInput(res.data.features[0].properties.name_preferred);
+                } else {
+                    setPickupInput(res.data.features[0].properties.name_preferred);
+                }
+            });
+        } catch (err) {
+            console.log('GET failed', err);
+        }
+    }
+
+    async function obtainDirections() {
+        try {
+            if (!pickupCoords || !destCoords) throw new Error("Coordinates invalid!")
+
+            const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoords[0]},${pickupCoords[1]};${destCoords[0]},${destCoords[1]}`
+            const p = axios.get(url, {
+                params: {
+                    access_token: MAPBOX_ACCESS_TOKEN,
+                    alternatives: true,
+                    geometries: "geojson",
+                    overview: "full",
+                    steps: true
+                }
+            })
+            p.then(res => {
+                setCoordinates(res.data.routes[0].geometry.coordinates);
+            });
+        } catch(err) {
+            console.log('GET failed', err);
+        }
+    }
+
+    const map = useRef<MapView>(null);
+    const crosshair = useRef<View>(null);
+
+    const CrosshairOverlay = () => {
+        return (
+            <View
+                pointerEvents="none"
+                style={{
+                    width: 2 * 10 + 1,
+                    height: 2 * 10 + 1,
+                    zIndex: 1000,
+                    position: "absolute",
+                    top: (windowHeight-301)/2,
+                    left: (windowWidth-21)/2,
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+                ref={crosshair}
+            >
+            <FontAwesomeIcon icon={faMapPin} size={24} style={{color: Colors[colorScheme ?? "light"].text, marginBottom: 22,}}/>
+            </View>
+        );
+    };
+
+    useEffect(() => {
         getCurrentLocation();
     }, []);
 
     useEffect(() => {
+        async function setPickupDefault() {
+            if (loaded) {
+                setPickupCoords([result.coords.longitude, result.coords.latitude]);
+                await obtainAddress([result.coords.longitude, result.coords.latitude] as Position, false)
+            }
+        }
+        setPickupDefault()
+    },
+    [loaded]) 
+
+    useEffect(() => {
         if (!pickupInput) {
-            setBtnText("search pickup")
+            setBtnText("Search pickup")
             setTitle0("Set your pickup")
             setSubtitle0("Where'd you like to meet your driver?")
             setData(pickupData)
         } else if (!destInput) {
-            setBtnText("search destination")
+            setBtnText("Search destination")
             setTitle0("Set your destination")
             setSubtitle0("Where'd you like to go today?")
             setData(destinationData)
         } else {
-            setBtnText("confirm details")
+            setBtnText("Confirm details")
             setTitle0("Plan your ride")
             setSubtitle0("Ready for a jurni?")
             setData(destinationData)
@@ -95,6 +218,15 @@ export default function MapScreen() {
         }
     }, [location]) 
 
+    useEffect(() => {
+        if (phase == 0) {
+            setShowCrosshair(true);
+            setCoordinates([]);
+        }
+        else setShowCrosshair(false);
+
+    }, [phase])
+
     return (
         <GestureHandlerRootView style={{flex: 1,}}>
             <TouchableOpacity onPress={() => {navigation.dispatch(DrawerActions.toggleDrawer())}} style={{
@@ -102,38 +234,73 @@ export default function MapScreen() {
                 height: 50,
                 width: 50,
                 borderRadius: 100,
-                backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
                 top: 60,
                 left: 20,
                 zIndex: 1000,
                 justifyContent: "center",
                 alignItems: "center",
             }}>
-                <FontAwesomeIcon icon={faBars} size={20} color={Colors[colorScheme ?? "light"].primary}/>
+                <FontAwesomeIcon icon={faBars} size={20} color={Colors[colorScheme ?? "light"].text}/>
             </TouchableOpacity>
-            {loaded ? <MapView
-                initialRegion={{
-                    latitude: result.coords.latitude,
-                    longitude: result.coords.longitude,
-                    latitudeDelta: 0.005,
-                    longitudeDelta: 0.005,
-                }}
-                provider={PROVIDER_GOOGLE}
-                showsIndoors={false}
-                showsUserLocation={true}
+            {showCrosshair && <CrosshairOverlay />}
+            {!followUser &&
+                <TouchableOpacity style={{height: 36, width: 36, backgroundColor: Colors[colorScheme??"light"].bgDark, position: "absolute", right: 20, bottom: 320, zIndex: 1000, borderRadius: 18, justifyContent: "center", alignItems: "center"}} onPress={() => {
+                    setFollowUser(true)
+                }}>
+                    <FontAwesomeIcon icon={faLocationCrosshairs} size={18} color={Colors[colorScheme ?? "light"].text}/>
+                </TouchableOpacity>
+            }
+            {loaded ? 
+            <MapView
+                ref={map}
+                styleURL={colorScheme == "light" ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11'}
                 style={{
-                    flex: 1,
+                    height: windowHeight - 280,
+                    width: windowWidth,
                 }}
-            />
+                onTouchEnd={async (e) => {
+                    crosshair.current?.measure(async (x, y, width, height) => {
+                        const coords = await map.current?.getCoordinateFromView([x + width / 2.0, y + height / 2.0]);
+                        if (coords) {
+                            if (pickupInput == "") {
+                                setPickupCoords(coords as Position);
+                                if (!followUser) {
+                                    await obtainAddress(coords as Position, false);
+                                }
+                            } else {
+                                setDestCoords(coords as Position);
+                                if (!followUser) {
+                                    await obtainAddress(coords as Position, true);
+                                }
+                            }
+                        }
+                    });
+                }}
+                scaleBarEnabled={false}
+                logoEnabled={false}
+                attributionEnabled={false}
+            >
+                <Route coordinates={coordinates} />
+                <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.6}/>
+
+                <Camera zoomLevel={15} followZoomLevel={15} followUserLocation={followUser} 
+                onUserTrackingModeChange={(e) => {
+                    if (e.nativeEvent.payload.followUserLocation == false) {
+                        setFollowUser(false)
+                    }
+                }} 
+                />
+            </MapView>
             :
-            <View style={{flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,}}>
+            <View style={{flex: 1, backgroundColor: Colors[colorScheme ?? "light"].bgDark,}}>
                 <Text>
                     {errorMsg}
                 </Text>
             </View>
             }
             
-            <BottomSheetModal
+            <BottomSheet
                 ref={bottomSheetRef}
                 onChange={(idx) => {
                     if ((idx == 1) && (phase == 1)) {
@@ -142,13 +309,14 @@ export default function MapScreen() {
                         setSubtitle1("You've got options.");
                     }
                 }}
-                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].primaryBackground}}
-                handleIndicatorStyle={{backgroundColor: Colors[colorScheme ?? "light"].primaryText}}
+                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
+                handleIndicatorStyle={{backgroundColor: Colors[colorScheme ?? "light"].text}}
                 keyboardBehavior="interactive"
                 snapPoints={ phase == 0 ? snapPoints : phase == 1 ? snapPoints1 : phase == 2 ? snapPoints2 : snapPoints3}
                 enableDynamicSizing={false}
                 keyboardBlurBehavior='restore'
                 topInset={150}
+                containerStyle={{zIndex: 10000}}
                 footerComponent={(props) => {
                     if (phase == 0) {
                         return (
@@ -156,11 +324,12 @@ export default function MapScreen() {
                                 <View style={{
                                     width: "100%", 
                                     paddingHorizontal: 20, 
-                                    backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, 
+                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark, 
                                     paddingBottom: 40,}}>
                                     <Btn styleBtn={{}} text={btnText} onPress={() => {
                                         if (destInput && pickupInput) {
                                             setPhase(1);
+                                            obtainDirections();
                                         } 
                                         bottomSheetRef.current?.snapToIndex(1);
                                     }}/>
@@ -173,7 +342,7 @@ export default function MapScreen() {
                                 <View style={{
                                     width: "100%", 
                                     paddingHorizontal: 20, 
-                                    backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, 
+                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark, 
                                     paddingBottom: 40,}}>
                                     <Btn onPress={() => {
                                         if (confirmed) {
@@ -185,7 +354,7 @@ export default function MapScreen() {
                                         else {
                                             setPhase(0);
                                         }
-                                    }} text={confirmed ? "cancel" : "return"}/>
+                                    }} text={confirmed ? "Cancel" : "Return"}/>
                                 </View>
                             </BottomSheetFooter>
                         )
@@ -195,28 +364,28 @@ export default function MapScreen() {
                                 <View style={{
                                     width: "100%", 
                                     paddingHorizontal: 20, 
-                                    backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, 
+                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark, 
                                     paddingBottom: 40, 
                                     gap: 10,}}>
                                     <Btn onPress={() => {
                                         setPhase(3);
                                         bottomSheetRef.current?.snapToIndex(0);
-                                    }} text="request ride"/>
+                                    }} text="Request ride"/>
                                     <Btn onPress={() => {setPhase(1)}} styleTxt={{color: Colors[colorScheme ?? "light"].primary,}} styleBtn={{
                                         borderWidth: 1,
                                         borderColor: Colors[colorScheme ?? "light"].primary,
-                                        backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
-                                    }} text="return"/>
+                                        backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                                    }} text="Return"/>
                                 </View>
                             </BottomSheetFooter>
                         )
                     }
                     return (
                         <BottomSheetFooter {...props}>
-                            <View style={{width: "100%", paddingHorizontal: 20, backgroundColor: Colors[colorScheme ?? "light"].primaryBackground, paddingBottom: 40,}}>
+                            <View style={{width: "100%", paddingHorizontal: 20, backgroundColor: Colors[colorScheme ?? "light"].bgDark, paddingBottom: 40,}}>
                                 <Btn onPress={() => {
                                     setPhase(0);
-                                }} text={"cancel"}/>
+                                }} text={"Cancel"}/>
                             </View>
                         </BottomSheetFooter>
                     )
@@ -226,7 +395,7 @@ export default function MapScreen() {
                     <BottomSheetScrollView style={{
                         flex: 1, 
                         marginBottom: 100, 
-                        backgroundColor: Colors[colorScheme ?? "light"].primaryBackground
+                        backgroundColor: Colors[colorScheme ?? "light"].bgDark
                     }} 
                     stickyHeaderIndices={[0]}
                     >
@@ -236,7 +405,7 @@ export default function MapScreen() {
                                 alignItems: 'center',
                                 paddingHorizontal: 20,
                                 paddingVertical: 10,
-                                backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+                                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
                                 marginBottom: 10,
                             }}>
                                 <Text style={defaultStyles.title}>{title0}</Text>
@@ -247,7 +416,7 @@ export default function MapScreen() {
                                     borderWidth: 1, 
                                     marginTop: 15, 
                                     paddingVertical: 10, 
-                                    borderColor: Colors[colorScheme ?? "light"].borderColor
+                                    borderColor: Colors[colorScheme ?? "light"].secondary
                                 }}>
                                     <View style={{
                                         height: 20, 
@@ -259,15 +428,16 @@ export default function MapScreen() {
                                         <FontAwesomeIcon 
                                             icon={faLocationDot} 
                                             size={16} 
-                                            color={Colors[colorScheme ?? "light"].primaryText}
+                                            color={Colors[colorScheme ?? "light"].text}
                                         />
                                         <BottomSheetTextInput style={{
                                             width: "80%", 
                                             height: "100%", 
                                             fontSize: 16,
-                                            color: Colors[colorScheme ?? "light"].primaryText, 
+                                            color: Colors[colorScheme ?? "light"].text, 
                                             fontFamily:'Outfit_400Regular'
                                         }} 
+                                        selectTextOnFocus
                                         placeholderTextColor={Colors[colorScheme ?? "light"].secondary} 
                                         placeholder='Pickup Location' 
                                         value={pickupInput} 
@@ -279,7 +449,7 @@ export default function MapScreen() {
                                         width: (windowWidth-40)*0.9-30, 
                                         borderWidth: 0.3, 
                                         marginTop: 6, 
-                                        borderColor: Colors[colorScheme ?? "light"].primaryText
+                                        borderColor: Colors[colorScheme ?? "light"].text
                                     }}></View>
                                     <View style={{
                                         height: 20, 
@@ -292,19 +462,20 @@ export default function MapScreen() {
                                         <FontAwesomeIcon 
                                             icon={faMap} 
                                             size={16} 
-                                            color={Colors[colorScheme ?? "light"].primaryText}
+                                            color={Colors[colorScheme ?? "light"].text}
                                         />
                                         <BottomSheetTextInput style={{
                                             width: "80%", 
                                             height: "100%", 
                                             fontSize: 16, color: 
-                                            Colors[colorScheme ?? "light"].primaryText, 
+                                            Colors[colorScheme ?? "light"].text, 
                                             fontFamily:'Outfit_400Regular'
                                         }} 
                                         placeholderTextColor={Colors[colorScheme ?? "light"].secondary} 
                                         placeholder='Where to?' 
                                         value={destInput} 
                                         onChangeText={(text) => {setDestInput(text)}}
+                                        selectTextOnFocus
                                         />
                                     </View>
                                 </View>
@@ -343,7 +514,7 @@ export default function MapScreen() {
                                             <FontAwesomeIcon 
                                                 icon={faClock} 
                                                 size={15} 
-                                                color={Colors[colorScheme ?? "light"].primaryText}
+                                                color={Colors[colorScheme ?? "light"].text}
                                             />
                                         </View>
                                 
@@ -394,14 +565,14 @@ export default function MapScreen() {
                                     height: 30, 
                                     width: 30, 
                                     borderRadius: "100%", 
-                                    backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                    backgroundColor: Colors[colorScheme ?? "light"].bg, 
                                     justifyContent: "center", alignItems: "center"
                                 }}
                                 >
                                     <FontAwesomeIcon 
                                         icon={faMapPin} 
                                         size={15} 
-                                        color={Colors[colorScheme ?? "light"].primaryText}
+                                        color={Colors[colorScheme ?? "light"].text}
                                     />
                                 </View>
                                 <Text style={{
@@ -439,14 +610,14 @@ export default function MapScreen() {
                                     height: 30, 
                                     width: 30, 
                                     borderRadius: "100%", 
-                                    backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                    backgroundColor: Colors[colorScheme ?? "light"].bg, 
                                     justifyContent: "center", alignItems: "center"
                                 }}
                                 >
                                     <FontAwesomeIcon 
                                         icon={faStar} 
                                         size={15} 
-                                        color={Colors[colorScheme ?? "light"].primaryText}
+                                        color={Colors[colorScheme ?? "light"].text}
                                     />
                                 </View>
                                 <Text style={{
@@ -464,7 +635,7 @@ export default function MapScreen() {
                         <BottomSheetScrollView style={{
                             flex: 1, 
                             marginBottom: 100, 
-                            backgroundColor: Colors[colorScheme ?? "light"].primaryBackground
+                            backgroundColor: Colors[colorScheme ?? "light"].bgDark
                         }} 
                         stickyHeaderIndices={[0]}
                         >
@@ -474,7 +645,7 @@ export default function MapScreen() {
                                     alignItems: 'center',
                                     paddingHorizontal: 20,
                                     paddingVertical: 10,
-                                    backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark,
                                 }}>
                                     <Text style={defaultStyles.title}>{title1}</Text>
                                     <Text style={defaultStyles.subtitle}>{subtitle1}</Text>
@@ -498,8 +669,8 @@ export default function MapScreen() {
                                         width: "100%", 
                                         marginTop: 20, 
                                         padding: 20, 
-                                        borderColor: confirmed ? Colors[colorScheme ?? "light"].primary : Colors[colorScheme ?? "light"].borderColor, 
-                                        backgroundColor: confirmed ? Colors[colorScheme ?? "light"].secondaryBackground : Colors[colorScheme ?? "light"].primaryBackground
+                                        borderColor: confirmed ? Colors[colorScheme ?? "light"].primary : Colors[colorScheme ?? "light"].secondary, 
+                                        backgroundColor: confirmed ? Colors[colorScheme ?? "light"].bg : Colors[colorScheme ?? "light"].bgDark
                                     }}
                                     >
                                         <View style={{
@@ -543,7 +714,7 @@ export default function MapScreen() {
                                                         <FontAwesomeIcon 
                                                             icon={faUser} 
                                                             size={12} 
-                                                            color={Colors[colorScheme ?? "light"].primaryText} 
+                                                            color={Colors[colorScheme ?? "light"].text} 
                                                         />
                                                         <Text style={{
                                                             ...defaultStyles.title, 
@@ -570,7 +741,7 @@ export default function MapScreen() {
                                                     <FontAwesomeIcon 
                                                         icon={faCircle} 
                                                         size={4} 
-                                                        color={Colors[colorScheme ?? "light"].secondaryText} 
+                                                        color={Colors[colorScheme ?? "light"].text} 
                                                     />
                                                     <Text style={{
                                                         ...defaultStyles.subtitle, 
@@ -685,7 +856,7 @@ export default function MapScreen() {
                                                             <FontAwesomeIcon 
                                                                 icon={faUser} 
                                                                 size={10} 
-                                                                color={Colors[colorScheme ?? "light"].primaryText} 
+                                                                color={Colors[colorScheme ?? "light"].text} 
                                                             />
                                                             <Text style={{
                                                                 ...defaultStyles.title, 
@@ -744,7 +915,7 @@ export default function MapScreen() {
                             <BottomSheetScrollView style={{
                                 flex: 1, 
                                 marginBottom: 100, 
-                                backgroundColor: Colors[colorScheme ?? "light"].primaryBackground
+                                backgroundColor: Colors[colorScheme ?? "light"].bgDark
                             }} 
                             stickyHeaderIndices={[0]}
                             >
@@ -752,7 +923,7 @@ export default function MapScreen() {
                                     width: windowWidth,
                                     paddingHorizontal: 20,
                                     paddingVertical: 10,
-                                    backgroundColor: Colors[colorScheme ?? "light"].primaryBackground
+                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark
                                 }}>
                                     <View style={{width: "100%", alignItems: "center"}}>
                                         <Text style={defaultStyles.title}>Your jurni ride</Text>
@@ -790,7 +961,7 @@ export default function MapScreen() {
                                                 <Text style={{
                                                     ...defaultStyles.title, 
                                                     fontSize: 36, 
-                                                    color: Colors[colorScheme ?? "light"].secondaryText
+                                                    color: Colors[colorScheme ?? "light"].textMuted
                                                 }}
                                                 >
                                                     {rideSummaryData[0].value}
@@ -871,7 +1042,7 @@ export default function MapScreen() {
                             <BottomSheetView style={{
                                 height: windowHeight-265, 
                                 width: "100%", 
-                                backgroundColor: Colors[colorScheme ?? "light"].primaryBackground
+                                backgroundColor: Colors[colorScheme ?? "light"].bgDark
                             }}
                             >
                                 <View style={{
@@ -884,7 +1055,7 @@ export default function MapScreen() {
                                     <View style={{
                                         height: 300, 
                                         width: 300, 
-                                        backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                        backgroundColor: Colors[colorScheme ?? "light"].bg, 
                                         justifyContent: "center", 
                                         alignItems: "center", 
                                         borderRadius: 50,
@@ -898,7 +1069,7 @@ export default function MapScreen() {
                                         <Text style={{
                                             ...defaultStyles.title, 
                                             fontSize: 16, 
-                                            color: Colors[colorScheme ?? "light"].secondaryText, 
+                                            color: Colors[colorScheme ?? "light"].textMuted, 
                                             marginTop: 30,
                                         }}
                                         >
@@ -935,7 +1106,7 @@ export default function MapScreen() {
                                 </View>
                             </BottomSheetView>
                 }
-            </BottomSheetModal>
+            </BottomSheet>
         </GestureHandlerRootView>
     )
 }

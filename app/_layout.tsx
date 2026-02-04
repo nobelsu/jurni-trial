@@ -27,7 +27,7 @@ export default function RootStackLayout() {
   }
 
   return (
-    <Stack screenOptions={{headerShown: false, gestureEnabled: false}}>
+    <Stack screenOptions={{headerShown: false, gestureEnabled: false, fullScreenGestureEnabled: false}}>
       <Stack.Screen name="index" />
       <Stack.Screen name="phone_number" />
       <Stack.Screen name="login" />

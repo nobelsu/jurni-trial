@@ -30,7 +30,6 @@ export default function OtpScreen() {
     const number = useGlobalSearchParams<{ number : string }>().number;
     
     const [code, setCode] = useState<string>("");
-    const [message, setMessage] = useState<string>("");
     const [confirm, setConfirm] = useState<any>(null);
     const [user, setUser] = useState<any>();
 
@@ -39,11 +38,9 @@ export default function OtpScreen() {
 
     function handleAuthStateChanged(user: any) {
         setUser(user);
-        console.log(user);
     }
 
     useEffect(() => {
-        auth().settings.appVerificationDisabledForTesting = false
         async function sendCode() {
             const confirmation = await signInWithPhoneNumber(auth(), number);
             setConfirm(confirmation);
@@ -98,26 +95,6 @@ export default function OtpScreen() {
             value: code,
             setValue: setCode,
         });
-    
-        const styles = StyleSheet.create({
-            codeFieldRoot: {width: "100%",},
-            cell: {
-                width: 50,
-                height: 50,
-                lineHeight: 45,
-                fontSize: 20,
-                borderWidth: 1,
-                borderColor: Colors[colorScheme ?? "light"].secondaryBackground, 
-                textAlign: 'center',
-                color: Colors[colorScheme ?? "light"].secondaryText,
-                fontFamily: 'Outfit_400Regular',
-                backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
-                borderRadius: 12,
-            },
-            focusCell: {
-                borderColor: Colors[colorScheme ?? "light"].secondaryText,
-            },
-        });
 
     return (
         <TouchableWithoutFeedback onPress={() => {Keyboard.dismiss()}}>
@@ -127,7 +104,7 @@ export default function OtpScreen() {
 
                     <View style={{flex: 5, paddingTop: 30,}}>
                         <Text style={defaultStyles.title}>Verify your phone number</Text>
-                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Enter the security code sent to <Text style={{fontFamily: "Outfit_600SemiBold"}}>{number}</Text></Text>
+                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Enter the security code sent to <Text style={{fontFamily: "Outfit_600SemiBold", color: Colors[colorScheme ?? "light"].secondary}}>{number}</Text></Text>
                         <View style={{marginTop: 20, alignItems: "center"}}>
                             <CodeField  
                                 ref={ref}
@@ -137,7 +114,7 @@ export default function OtpScreen() {
                                 value={code}
                                 onChangeText={setCode}
                                 cellCount={6}
-                                rootStyle={styles.codeFieldRoot}
+                                rootStyle={{width: "100%"}}
                                 keyboardType="number-pad"
                                 textContentType="oneTimeCode"
                                 testID="my-code-input"
@@ -151,15 +128,15 @@ export default function OtpScreen() {
                                             lineHeight: 45,
                                             fontSize: 20,
                                             borderWidth: 1,
-                                            borderColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                            borderColor: Colors[colorScheme ?? "light"].bg, 
                                             textAlign: 'center',
-                                            color: Colors[colorScheme ?? "light"].secondaryText,
+                                            color: Colors[colorScheme ?? "light"].text,
                                             fontFamily: 'Outfit_400Regular',
-                                            backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, 
+                                            backgroundColor: Colors[colorScheme ?? "light"].bg, 
                                             borderRadius: 12,
-                                            }, 
+                                        }, 
                                         isFocused && {
-                                            borderColor: Colors[colorScheme ?? "light"].secondaryText,
+                                            borderColor: Colors[colorScheme ?? "light"].secondary,
                                         }
                                     ]}
                                     onLayout={getCellOnLayoutHandler(index)}>
@@ -173,10 +150,10 @@ export default function OtpScreen() {
                     
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <BackBtn onPress={() => {router.push("/phone_number")}}/>
+                            <BackBtn onPress={() => {router.back()}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="confirm" onPress={confirmCode} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Confirm" onPress={confirmCode} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

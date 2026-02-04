@@ -14,8 +14,8 @@ export default function GettingStartedScreen() {
 
     return (
         <SafeAreaView style={defaultStyles.container}>
-            <View style={{flex: 1, paddingTop: 20, gap: 5,}}>
-                <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].primaryText}}>jurni</Text>
+            {/* <View style={{flex: 1, paddingTop: 20, gap: 5,}}>
+                <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].text}}>jurni</Text>
                 <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].primary}}>welcome</Text>
             </View> 
             <View style={{flex: 4, gap: 4, paddingTop: windowHeight*0.21,}}>
@@ -23,9 +23,9 @@ export default function GettingStartedScreen() {
                 <View style={{alignItems: "center", width: "100%",}}>
                     <Text style={{fontSize: 48, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].primaryText}}>it's a <Text style={{color: Colors[colorScheme ?? "light"].primary}}>jurni.</Text></Text>
                 </View>
-            </View>
+            </View> */}
             <View style={{flex: 1, justifyContent: "center", alignItems: "center", width: "100%"}}>
-                <Btn styleBtn={{}} text="get started" onPress={() => {router.navigate('phone_number');}} />
+                <Btn styleBtn={{}} text="Get started" onPress={() => {router.navigate('phone_number');}} />
             </View>
         </SafeAreaView>
     )

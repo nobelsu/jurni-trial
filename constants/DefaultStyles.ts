@@ -10,7 +10,7 @@ export default function StyleDefault({ colorScheme } : StyleDefaultProps) {
     container: {
       flex: 1,
       paddingHorizontal: 20,
-      backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
     },
     header: {
       flexDirection: "row",
@@ -22,30 +22,30 @@ export default function StyleDefault({ colorScheme } : StyleDefaultProps) {
     title: {
       fontSize: 24,
       fontFamily: 'Outfit_600SemiBold',
-      color: Colors[colorScheme ?? "light"].primaryText,
+      color: Colors[colorScheme ?? "light"].text,
     },
     subtitle: {
       fontSize: 16,
       fontFamily: 'Outfit_400Regular',
-      color: Colors[colorScheme ?? "light"].secondaryText,
+      color: Colors[colorScheme ?? "light"].textMuted,
     },
     smallCard: {
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: Colors[colorScheme ?? "light"].borderColor,
-      backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+      borderColor: Colors[colorScheme ?? "light"].secondary,
+      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
     },
     mediumCard: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: Colors[colorScheme ?? "light"].borderColor,
-      backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+      borderColor: Colors[colorScheme ?? "light"].secondary,
+      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
     },
     largeCard: {
       borderRadius: 16,
       borderWidth: 4,
-      borderColor: Colors[colorScheme ?? "light"].borderColor,
-      backgroundColor: Colors[colorScheme ?? "light"].primaryBackground,
+      borderColor: Colors[colorScheme ?? "light"].secondary,
+      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
     },
   });
   return DefaultStyles;

@@ -44,9 +44,9 @@ export default function LoginPasswordScreen() {
                         <Text style={defaultStyles.title}>Enter your password</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We found an account that matches your mobile number</Text>
                         <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground, gap: 12,}}>
-                                <FontAwesomeIcon icon={faLock} size={14} color={Colors[colorScheme ?? "light"].secondaryText}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].secondaryText,}} placeholderTextColor={Colors[colorScheme ?? "light"].tertiaryText} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].secondaryText} value={password} onChangeText={setPassword}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faLock} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} value={password} onChangeText={setPassword}/>
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
@@ -54,10 +54,10 @@ export default function LoginPasswordScreen() {
                     
                     <View style={{flex: 1, flexDirection: "row"}}>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-start", width: "100%"}}>
-                            <BackBtn onPress={() => {router.push("/phone_number")}}/>
+                            <BackBtn onPress={() => {router.back()}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="login" onPress={handleLogin} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Login" onPress={handleLogin} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

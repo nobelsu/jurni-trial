@@ -10,13 +10,13 @@ export default function HomeStackLayout() {
       headerShown: false,
       drawerActiveTintColor: Colors[colorScheme ?? "light"].primary,
       drawerLabelStyle: {
-        color: Colors[colorScheme ?? "light"].secondaryText,
+        color: Colors[colorScheme ?? "light"].text,
         fontFamily: "Outfit_600SemiBold",
         fontSize: 14,
         textAlign: "center",
       },
       drawerStyle: {
-        backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground,
+        backgroundColor: Colors[colorScheme ?? "light"].bg,
         width: "50%",
       },
       drawerType: "front"

@@ -17,8 +17,8 @@ export default function Btn({onPress, text, styleBtn, styleTxt}: BtnProps) {
             onPress={onPress} 
             style={{
                 backgroundColor: Colors[colorScheme ?? "light"].primary,
-                padding: 15,
-                borderRadius: 12,
+                padding: 16,
+                borderRadius: 18,
                 justifyContent: "center",
                 alignItems: "center",
                 width: "100%",
@@ -26,9 +26,9 @@ export default function Btn({onPress, text, styleBtn, styleTxt}: BtnProps) {
             }}
         >
             <Text style ={{
-                color: Colors[colorScheme ?? "light"].btnText,
-                fontSize: 16,
-                fontFamily:"Outfit_600SemiBold",
+                color: colorScheme == "light" ? Colors["light"].bgDark : Colors["light"].bgLight,
+                fontSize: 18,
+                fontFamily:"Outfit_500Medium",
                 ...styleTxt
             }}>
                 {text}

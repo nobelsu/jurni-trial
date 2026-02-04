@@ -17,9 +17,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.suhendra.jurni",
       "userInterfaceStyle": "automatic",
-      "config": {
-        "googleMapsApiKey": "process.env.GOOGLE_MAPS_API_KEY"
-      },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
@@ -39,26 +36,24 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Jurni Ride to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Show current location on map."
         }
       ],
       "expo-router",
       "@react-native-firebase/auth",
+      "@react-native-firebase/app",
       [
         "expo-build-properties",
         {
           "ios": {
             "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp"]
+            "forceStaticLinking": [
+              "RNFBApp"
+            ]
           }
         }
       ],
-      [
-        "react-native-maps",
-        {
-          "iosGoogleMapsApiKey":  "process.env.GOOGLE_MAPS_API_KEY"
-        }
-      ]
+      "@rnmapbox/maps"
     ]
   }
 }
