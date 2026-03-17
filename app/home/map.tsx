@@ -1,103 +1,148 @@
-import { View, Text, useColorScheme, TouchableOpacity, Button, TouchableHighlight } from 'react-native';
+import { View, Text, useColorScheme, TouchableOpacity, } from 'react-native';
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
-import BottomSheetModal, { BottomSheetTextInput, BottomSheetView, BottomSheetScrollView, BottomSheetFooter, WINDOW_HEIGHT} from '@gorhom/bottom-sheet';
+import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
+import { BottomSheetFooter, } from '@gorhom/bottom-sheet';
 import StyleDefault from '../../constants/DefaultStyles';
-import { useRef, useMemo, useState, useEffect, useLayoutEffect, } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Dimensions } from 'react-native';
-import { setAccessToken, MapView, Camera, UserLocation, LineLayer, ShapeSource, Viewport, LocationPuck } from '@rnmapbox/maps';
+import { setAccessToken, MapView, Camera, Viewport, LocationPuck, OnMapSteadyEvent, CameraGestureObserver, MarkerView } from '@rnmapbox/maps';
 import axios from 'axios';
 
-import Btn from '../../components/CustomButton';
-import { pickupData, destinationData, rideTypeData, rideSummaryData,  } from '../../constants/MockData';
+import { pickupData, destinationData, rideTypeMetadata, } from '../../constants/MockData';
 
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
-import { faMap } from '@fortawesome/free-solid-svg-icons/faMap'
-import { faClock } from '@fortawesome/free-regular-svg-icons/faClock'
-import { faStar } from '@fortawesome/free-regular-svg-icons/faStar'
-import { faMapPin } from '@fortawesome/free-solid-svg-icons/faMapPin'
-import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
-import { faCircle } from '@fortawesome/free-solid-svg-icons/faCircle'
 import { faBars } from '@fortawesome/free-solid-svg-icons/faBars'
-import { faCar } from '@fortawesome/free-solid-svg-icons/faCar'
 import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons/faLocationCrosshairs'
-import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
-
-const MAPBOX_ACCESS_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
-setAccessToken(MAPBOX_ACCESS_TOKEN);
-
-type Position = [number, number]
-
-const Route = ({ coordinates }: { coordinates: Position[] }) => {
-  const features: GeoJSON.FeatureCollection = useMemo(() => {
-    return {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          id: 'a-feature',
-          geometry: {
-            type: 'LineString',
-            coordinates,
-          },
-          properties: {},
-        } as const,
-      ],
-    };
-  }, [coordinates]);
-  return (
-    <ShapeSource id={'shape-source-id-0'} shape={features}>
-      <LineLayer id={'line-layer'} style={{lineColor: "red", lineWidth: 5,}} />
-    </ShapeSource>
-  );
-};
+import SetLocation from '../../components/SetLocation';
+import SearchLocation from '../../components/SearchLocation';
+import { MAPBOX_ACCESS_TOKEN, obtainWalkingDirections, Position, getPlaceLabelForCoords } from '../../lib/mapbox';
+import CrosshairOverlay from '../../components/Crosshair';
+import Route from '../../components/Route';
+import ConfirmRide from '../../components/ChooseRide';
+import SelectRide from '../../components/SelectRide';
+import RouteEndpointPin from '../../components/RouteEndpointPin';
+import { faAngleRight } from '@fortawesome/free-solid-svg-icons/faAngleRight';
+import ConfirmPickup from '../../components/ConfirmPickup';
+import RouteWalking from '../../components/RouteWalking';
+import { getAuth } from '@react-native-firebase/auth';
+import { calculateRideCostByType, RideTypeId } from '../../lib/cost';
+import { getSilentOnlyDefault } from '../../lib/users';
+import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 
 export default function MapScreen() {
+    setAccessToken(MAPBOX_ACCESS_TOKEN);
+
     const colorScheme = useColorScheme();
     const defaultStyles = StyleDefault({ colorScheme });
-    const bottomSheetRef = useRef<BottomSheetModal>(null);
-    const snapPoints = useMemo(() =>  [300, "100%"], []);
-    const snapPoints1 = useMemo(() => [400, "100%"], []);
-    const snapPoints2 = useMemo(() => [390, "100%"], []);
+    const router = useRouter();
+    
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const bottomSheetRef1 = useRef<BottomSheet>(null);
+    const bottomSheetRef2 = useRef<BottomSheet>(null);
+
+    const snapPoints = useMemo(() =>  [260, "100%"], []);
+    const snapPoints1 = useMemo(() => [320, 600], []);
+    const snapPoints1List = [120, 390]
+    const snapPoints2 = useMemo(() => [260], []);
     const snapPoints3 = useMemo(() => [500, "100%"], []);
-    const navigation = useNavigation()
+    const navigation = useNavigation();
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [result, setResult] = useState<any>(null);
     const [loaded, setLoaded] = useState<Boolean>(false);
+    const camera = useRef<Camera>(null);
+    const [ne, setNe] = useState<Position>();
+    const [sw, setSw] = useState<Position>();
 
-    const [btnText, setBtnText] = useState<string>("search destination");
-    const [title0, setTitle0] = useState<string>("Set your destination");
-    const [subtitle0, setSubtitle0] = useState<string>("Where would you like to go, Nobel?")
-    const [pickupInput, setPickupInput] = useState<string>("123 Industrial Park Rd, Springfield");
+    const [pickupInput, setPickupInput] = useState<string>("");
     const [destInput, setDestInput] = useState<string>("");
+    const pickupRef = useRef<any>(null);
+    const destRef = useRef<any>(null);
     const [data, setData] = useState<Array<any>>(destinationData);
+    const [inputToggle, setInputToggle] = useState<boolean>(true); // true is for destination, false is for pickup
+    const [moving, setMoving] = useState<boolean>(false);
 
-    const [title1, setTitle1] = useState<string>("Tap to select");
-    const [subtitle1, setSubtitle1] = useState<string>("You've got options.");
-    const [selected, setSelected] = useState<number>(0);
-    const [confirmed, setConfirmed] = useState<Boolean>(false);
+    const [selected, setSelected] = useState<RideTypeId>("basic");
+    const [distance, setDistance] = useState<number>(0);
+    const [duration, setDuration] = useState<number>(0);
+
+    const price = useMemo(() => calculateRideCostByType(selected, distance, duration), [selected, distance, duration]);
 
     const [phase, setPhase] = useState<number>(0);
 
     const windowWidth = Dimensions.get('window').width;
     const windowHeight = Dimensions.get('window').height;
 
+    const [userLocation, setUserLocation] = useState<Position>([-1, -1]);
+
     const [coordinates, setCoordinates] = useState<Position[]>([]);
+    const [walkingCoordinates, setWalkingCoordinates] = useState<Position[]>([]);
     
     const [showCrosshair, setShowCrosshair] = useState<Boolean>(true);
 
-    const [pickupCoords, setPickupCoords] = useState<Position>();
-    const [destCoords, setDestCoords] = useState<Position>();
+    const [pickupCoords, setPickupCoords] = useState<Position>([-1, -1]);
+    const [destCoords, setDestCoords] = useState<Position>([-1, -1]);
 
-    const [followUser, setFollowUser] = useState<boolean>(true)
+    const [followUser, setFollowUser] = useState<boolean>(false)
+    const [silentOnly, setSilentOnly] = useState<boolean>(false);
+    const [styleLoaded, setStyleLoaded] = useState<boolean>(false);
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    // #region agent log
+    useEffect(() => {
+        fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Debug-Session-Id': '4e9209',
+            },
+            body: JSON.stringify({
+                sessionId: '4e9209',
+                runId: 'initial',
+                hypothesisId: 'H1',
+                location: 'app/home/map.tsx:76',
+                message: 'Map phase/route state change',
+                data: {
+                    phase,
+                    coordCount: coordinates.length,
+                    walkingCoordCount: walkingCoordinates.length,
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+    }, [phase, coordinates.length, walkingCoordinates.length]);
+    // #endregion
+
+    // #region agent log
+    useEffect(() => {
+        fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Debug-Session-Id': '4e9209',
+            },
+            body: JSON.stringify({
+                sessionId: '4e9209',
+                runId: 'initial',
+                hypothesisId: 'H4',
+                location: 'app/home/map.tsx:140',
+                message: 'Color scheme changed for MapView',
+                data: {
+                    colorScheme,
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+        setStyleLoaded(false);
+    }, [colorScheme]);
+    // #endregion
 
     async function getCurrentLocation() {
         let { status } = await Location.requestForegroundPermissionsAsync();
@@ -108,84 +153,82 @@ export default function MapScreen() {
         let location = await Location.getCurrentPositionAsync({});
         setLocation(location);
     }
-    
-    async function obtainAddress(coords: Position, flag: Boolean) {
+
+    async function obtainAddressFromSearchbox(coords: Position, isDestination: boolean) {
+        try {
+            const placeLabel = await getPlaceLabelForCoords(coords);
+            const label =
+                placeLabel?.name ||
+                placeLabel?.full_address ||
+                "";
+
+            if (!label) return;
+
+            if (isDestination) {
+                setDestInput(label);
+            } else {
+                setPickupInput(label);
+            }
+        } catch (err) {
+            console.log("Searchbox reverse lookup failed", err);
+        }
+    }
+
+    async function reverseGeocodePickupForConfirm(coords: Position) {
         try {
             const url = "https://api.mapbox.com/search/geocode/v6/reverse";
-            const p = axios.get(url, {
+            const res = await axios.get(url, {
                 params: {
                     access_token: MAPBOX_ACCESS_TOKEN,
                     longitude: coords[0],
                     latitude: coords[1],
                 }
-            })
-            p.then(res => {
-                if (flag) {
-                    setDestInput(res.data.features[0].properties.name_preferred);
-                } else {
-                    setPickupInput(res.data.features[0].properties.name_preferred);
-                }
             });
+            const feature = res.data?.features?.[0];
+            const properties = feature?.properties ?? {};
+            const preferredName: string =
+                properties.name_preferred ??
+                properties.name ??
+                properties.place_formatted ??
+                feature?.place_name ??
+                "";
+
+            if (preferredName) {
+                setPickupInput(preferredName);
+            }
         } catch (err) {
-            console.log('GET failed', err);
-        }
-    }
-
-    async function obtainDirections() {
-        try {
-            if (!pickupCoords || !destCoords) throw new Error("Coordinates invalid!")
-
-            const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoords[0]},${pickupCoords[1]};${destCoords[0]},${destCoords[1]}`
-            const p = axios.get(url, {
-                params: {
-                    access_token: MAPBOX_ACCESS_TOKEN,
-                    alternatives: true,
-                    geometries: "geojson",
-                    overview: "full",
-                    steps: true
-                }
-            })
-            p.then(res => {
-                setCoordinates(res.data.routes[0].geometry.coordinates);
-            });
-        } catch(err) {
-            console.log('GET failed', err);
+            console.log("Geocoding reverse lookup for confirm failed", err);
         }
     }
 
     const map = useRef<MapView>(null);
     const crosshair = useRef<View>(null);
 
-    const CrosshairOverlay = () => {
-        return (
-            <View
-                pointerEvents="none"
-                style={{
-                    width: 2 * 10 + 1,
-                    height: 2 * 10 + 1,
-                    zIndex: 1000,
-                    position: "absolute",
-                    top: (windowHeight-301)/2,
-                    left: (windowWidth-21)/2,
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-                ref={crosshair}
-            >
-            <FontAwesomeIcon icon={faMapPin} size={24} style={{color: Colors[colorScheme ?? "light"].text, marginBottom: 22,}}/>
-            </View>
-        );
-    };
-
     useEffect(() => {
+        if (user == null) {
+            router.navigate("/login");
+        }
+        setFollowUser(false);
         getCurrentLocation();
+        if (user?.uid) {
+            getSilentOnlyDefault(user.uid)
+                .then((val) => {
+                    setSilentOnly(val);
+                })
+                .catch(() => {
+                    // ignore preference load errors
+                });
+        } else {
+            setSilentOnly(false);
+        }
     }, []);
 
     useEffect(() => {
         async function setPickupDefault() {
             if (loaded) {
                 setPickupCoords([result.coords.longitude, result.coords.latitude]);
-                await obtainAddress([result.coords.longitude, result.coords.latitude] as Position, false)
+                setUserLocation([result.coords.longitude, result.coords.latitude])
+                await obtainAddressFromSearchbox([result.coords.longitude, result.coords.latitude] as Position, false)
             }
         }
         setPickupDefault()
@@ -194,19 +237,10 @@ export default function MapScreen() {
 
     useEffect(() => {
         if (!pickupInput) {
-            setBtnText("Search pickup")
-            setTitle0("Set your pickup")
-            setSubtitle0("Where'd you like to meet your driver?")
             setData(pickupData)
         } else if (!destInput) {
-            setBtnText("Search destination")
-            setTitle0("Set your destination")
-            setSubtitle0("Where'd you like to go today?")
             setData(destinationData)
         } else {
-            setBtnText("Confirm details")
-            setTitle0("Plan your ride")
-            setSubtitle0("Ready for a jurni?")
             setData(destinationData)
         }
     }, [destInput, pickupInput])
@@ -219,13 +253,44 @@ export default function MapScreen() {
     }, [location]) 
 
     useEffect(() => {
-        if (phase == 0) {
+        if (phase == 0 || phase == 2) {
             setShowCrosshair(true);
             setCoordinates([]);
         }
         else setShowCrosshair(false);
 
     }, [phase])
+
+    useFocusEffect(
+        useCallback(() => {
+            setPhase(0);
+            setDestInput("");
+            setPickupCoords(userLocation);
+            setDestCoords([-1, -1]);
+            setInputToggle(true);
+            setSelected("basic");
+            setDistance(0);
+            setDuration(0);
+            setNe(undefined);
+            setSw(undefined);
+            setWalkingCoordinates([]);
+            setFollowUser(false);
+            setMoving(false);
+            setSilentOnly(false);
+            bottomSheetRef.current?.snapToIndex(0);
+            bottomSheetRef1.current?.snapToIndex(-1);
+            bottomSheetRef2.current?.snapToIndex(-1);
+            if (userLocation[0] !== -1) {
+                camera.current?.setCamera({
+                    centerCoordinate: userLocation,
+                    zoomLevel: 16,
+                    padding: { paddingBottom: 260, paddingTop: 0, paddingLeft: 0, paddingRight: 0 },
+                    animationDuration: 500,
+                });
+                obtainAddressFromSearchbox(userLocation, false);
+            }
+        }, [userLocation])
+    );
 
     return (
         <GestureHandlerRootView style={{flex: 1,}}>
@@ -243,869 +308,311 @@ export default function MapScreen() {
             }}>
                 <FontAwesomeIcon icon={faBars} size={20} color={Colors[colorScheme ?? "light"].text}/>
             </TouchableOpacity>
-            {showCrosshair && <CrosshairOverlay />}
-            {!followUser &&
-                <TouchableOpacity style={{height: 36, width: 36, backgroundColor: Colors[colorScheme??"light"].bgDark, position: "absolute", right: 20, bottom: 320, zIndex: 1000, borderRadius: 18, justifyContent: "center", alignItems: "center"}} onPress={() => {
+            {showCrosshair && <CrosshairOverlay ref={crosshair} moving={moving} />}
+            {(!followUser && (phase == 0)) && 
+                <TouchableOpacity style={{height: 36, width: 36, backgroundColor: Colors[colorScheme??"light"].bgDark, position: "absolute", right: 20, bottom: 280, zIndex: 1000, borderRadius: 18, justifyContent: "center", alignItems: "center"}} onPress={() => {
                     setFollowUser(true)
                 }}>
                     <FontAwesomeIcon icon={faLocationCrosshairs} size={18} color={Colors[colorScheme ?? "light"].text}/>
                 </TouchableOpacity>
             }
-            {loaded ? 
+            {(loaded && location) ? 
             <MapView
                 ref={map}
                 styleURL={colorScheme == "light" ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11'}
                 style={{
-                    height: windowHeight - 280,
+                    height: windowHeight,
                     width: windowWidth,
                 }}
-                onTouchEnd={async (e) => {
-                    crosshair.current?.measure(async (x, y, width, height) => {
-                        const coords = await map.current?.getCoordinateFromView([x + width / 2.0, y + height / 2.0]);
-                        if (coords) {
-                            if (pickupInput == "") {
-                                setPickupCoords(coords as Position);
-                                if (!followUser) {
-                                    await obtainAddress(coords as Position, false);
-                                }
-                            } else {
-                                setDestCoords(coords as Position);
-                                if (!followUser) {
-                                    await obtainAddress(coords as Position, true);
-                                }
-                            }
-                        }
-                    });
+                onTouchMove={() => {
+                    setMoving(true);
+
+                    if (phase == 2) {
+                        setWalkingCoordinates([]);
+                    }
                 }}
                 scaleBarEnabled={false}
                 logoEnabled={false}
                 attributionEnabled={false}
-            >
-                <Route coordinates={coordinates} />
-                <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.6}/>
+                onDidFinishLoadingStyle={() => {
+                    setStyleLoaded(true);
 
-                <Camera zoomLevel={15} followZoomLevel={15} followUserLocation={followUser} 
-                onUserTrackingModeChange={(e) => {
-                    if (e.nativeEvent.payload.followUserLocation == false) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Debug-Session-Id': '4e9209',
+                        },
+                        body: JSON.stringify({
+                            sessionId: '4e9209',
+                            runId: 'initial',
+                            hypothesisId: 'H5',
+                            location: 'app/home/map.tsx:311',
+                            message: 'Map style finished loading',
+                            data: {
+                                colorScheme,
+                            },
+                            timestamp: Date.now(),
+                        }),
+                    }).catch(() => {});
+                    // #endregion
+                }}
+                projection='mercator'
+            >
+                {(phase == 1 && styleLoaded) && <Route key={colorScheme} coordinates={coordinates} />}
+                {(phase == 1 && coordinates.length > 1) && (
+                    <>
+                        <MarkerView
+                            id="driving-route-start"
+                            coordinate={coordinates[0]}
+                        >
+                            <RouteEndpointPin type="start" />
+                        </MarkerView>
+                        <MarkerView
+                            id="driving-route-end"
+                            coordinate={coordinates[coordinates.length - 1]}
+                        >
+                            <RouteEndpointPin type="end" />
+                        </MarkerView>
+                    </>
+                )}
+                {(phase == 2 && styleLoaded) && <RouteWalking key={colorScheme} coordinates={walkingCoordinates} />}
+                <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.8}/>
+                <Camera 
+                    defaultSettings={{
+                        centerCoordinate: [location?.coords.latitude, location?.coords.longitude] as Position, 
+                        zoomLevel: 16,
+                        // padding: {paddingBottom: 260, paddingTop: 0, paddingLeft: 0, paddingRight: 0,},
+                        // animationDuration: 1,
+                        // animationMode: "none", 
+                    }}
+                    centerCoordinate={[location?.coords.longitude, location?.coords.latitude] as Position}
+                    // animationDuration={0}
+                    // zoomLevel={16} 
+                    followZoomLevel={16} 
+                    followUserLocation={followUser} 
+                    
+                    padding={{paddingBottom: 260, paddingTop: 0, paddingLeft: 0, paddingRight: 0,}}
+                    animationMode={"none"}
+                    animationDuration={1}
+                    followPadding={{paddingBottom: 260, paddingTop: 0, paddingLeft: 0, paddingRight: 0,}}
+                    ref={camera}
+                />
+                <CameraGestureObserver
+                    quietPeriodMs={200}
+                    maxIntervalMs={5000}
+                    onMapSteady={({ nativeEvent } : { nativeEvent: OnMapSteadyEvent }) => {
+                        const { reason, idleDurationMs, lastGestureType, timestamp } = nativeEvent;
+                        if (lastGestureType == "pan") {
+                            setMoving(false);
+                            if (phase == 0) {
+                                crosshair.current?.measure(async (x, y, width, height) => {
+                                    const coords = await map.current?.getCoordinateFromView([x + width / 2.0, y + height / 2.0]);
+                                    if (coords) {
+                                        if (!inputToggle) {
+                                            setPickupCoords(coords as Position);
+                                            await obtainAddressFromSearchbox(coords as Position, false);
+                                        } else {
+                                            setDestCoords(coords as Position);
+                                            await obtainAddressFromSearchbox(coords as Position, true);
+                                        }
+                                    }
+                                });
+                            } else if (phase == 2) {
+                                crosshair.current?.measure(async (x, y, width, height) => {
+                                    const coords = await map.current?.getCoordinateFromView([x + width / 2.0, y + height / 2.0]);
+                                    if (coords) {
+                                        setPickupCoords(coords as Position);
+                                        await reverseGeocodePickupForConfirm(coords as Position);
+                                        const walkingCoordinates = await obtainWalkingDirections(coords as Position, userLocation)
+                                        // var line2 = turf.lineString(walkingCoordinates);
+                                        // var curved2 = turf.bezierSpline(line2, {resolution: 10000});
+                                        // setWalkingCoordinates(curved2.geometry.coordinates as Position[]);
+                                        setWalkingCoordinates(walkingCoordinates)
+                                    }
+                                });
+                            }
+                        }
+                    }}
+                />
+                <Viewport onStatusChanged={(e) => {
+                    if (e.reason == "UserInteraction") {
                         setFollowUser(false)
                     }
-                }} 
-                />
+                }}/>
             </MapView>
             :
-            <View style={{flex: 1, backgroundColor: Colors[colorScheme ?? "light"].bgDark,}}>
-                <Text>
-                    {errorMsg}
+            <View style={{flex: 1, backgroundColor: Colors[colorScheme ?? "light"].bgDark, zIndex: 1000,}}>
+                <Text style={{color: Colors[colorScheme ?? "light"].text}}>
+                    Loading
                 </Text>
             </View>
             }
-            
             <BottomSheet
                 ref={bottomSheetRef}
                 onChange={(idx) => {
-                    if ((idx == 1) && (phase == 1)) {
-                        setConfirmed(false);
-                        setTitle1("Tap to select");
-                        setSubtitle1("You've got options.");
+                    if (idx == 1) {
+                        if (inputToggle) destRef.current?.focus();
+                        else pickupRef.current?.focus();
                     }
                 }}
                 backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
                 handleIndicatorStyle={{backgroundColor: Colors[colorScheme ?? "light"].text}}
                 keyboardBehavior="interactive"
-                snapPoints={ phase == 0 ? snapPoints : phase == 1 ? snapPoints1 : phase == 2 ? snapPoints2 : snapPoints3}
+                snapPoints={snapPoints}
                 enableDynamicSizing={false}
                 keyboardBlurBehavior='restore'
                 topInset={150}
                 containerStyle={{zIndex: 10000}}
+            >
+                <SetLocation 
+                    setPhase={setPhase} 
+                    nextRef={bottomSheetRef1} 
+                    moving={moving} 
+                    toggle={inputToggle} 
+                    setToggle={setInputToggle} 
+                    pickupInput={pickupInput} 
+                    setPickupInput={setPickupInput} 
+                    destInput={destInput} 
+                    setDestInput={setDestInput} 
+                    pickupCoords={pickupCoords} 
+                    destCoords={destCoords} 
+                    setCoordinates={setCoordinates} 
+                    cameraRef={camera}
+                    setNe={setNe}
+                    setSw={setSw}
+                    setPickupCoords={setPickupCoords}
+                    setWalkingCoordinates={setWalkingCoordinates}
+                    userLocation={userLocation}
+                    setDistance={setDistance}
+                    setDuration={setDuration}
+                />
+                <SearchLocation
+                    destRef={destRef}
+                    pickupRef={pickupRef}
+                    toggle={inputToggle}
+                    setToggle={setInputToggle}
+                    pickupInput={pickupInput}
+                    setPickupInput={setPickupInput}
+                    destInput={destInput}
+                    setDestInput={setDestInput}
+                    setPickupCoords={setPickupCoords}
+                    setDestCoords={setDestCoords}
+                    userLocation={userLocation}
+                    userId={user?.uid}
+                />
+            </BottomSheet>
+            <BottomSheet 
+                ref={bottomSheetRef1} 
+                index={-1}
+                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
+                handleIndicatorStyle={{backgroundColor: Colors[colorScheme ?? "light"].text}}
+                keyboardBehavior="interactive"
+                snapPoints={snapPoints1}
+                enableDynamicSizing={false}
+                keyboardBlurBehavior='restore'
+                topInset={150}
+                containerStyle={{zIndex: 10000}}
+                onChange={(position) => {
+                    if (!ne || !sw) return
+                    // console.log(ne, sw)
+                    // camera.current?.fitBounds(ne, sw)
+                    camera.current?.fitBounds(ne, sw, [70, 70, snapPoints1List[position], 70], 800)
+                    // camera.current?.setCamera({padding: {paddingBottom: snapPoints1List[(position+1)%2], paddingLeft: 70, paddingRight: 70, paddingTop: 70,}})
+                }}
                 footerComponent={(props) => {
-                    if (phase == 0) {
-                        return (
-                            <BottomSheetFooter {...props}>
-                                <View style={{
-                                    width: "100%", 
-                                    paddingHorizontal: 20, 
-                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark, 
-                                    paddingBottom: 40,}}>
-                                    <Btn styleBtn={{}} text={btnText} onPress={() => {
-                                        if (destInput && pickupInput) {
-                                            setPhase(1);
-                                            obtainDirections();
-                                        } 
-                                        bottomSheetRef.current?.snapToIndex(1);
-                                    }}/>
-                                </View>
-                            </BottomSheetFooter>
-                        )
-                    } else if (phase == 1) {
-                        return (
-                            <BottomSheetFooter {...props}>
-                                <View style={{
-                                    width: "100%", 
-                                    paddingHorizontal: 20, 
-                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark, 
-                                    paddingBottom: 40,}}>
-                                    <Btn onPress={() => {
-                                        if (confirmed) {
-                                            setConfirmed(false); 
-                                            setTitle1("Tap to select");
-                                            setSubtitle1("You've got options.");
-                                            bottomSheetRef.current?.snapToIndex(1);
-                                        }
-                                        else {
-                                            setPhase(0);
-                                        }
-                                    }} text={confirmed ? "Cancel" : "Return"}/>
-                                </View>
-                            </BottomSheetFooter>
-                        )
-                    } else if (phase == 2) {
-                        return (
-                            <BottomSheetFooter {...props}>
-                                <View style={{
-                                    width: "100%", 
-                                    paddingHorizontal: 20, 
-                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark, 
-                                    paddingBottom: 40, 
-                                    gap: 10,}}>
-                                    <Btn onPress={() => {
-                                        setPhase(3);
-                                        bottomSheetRef.current?.snapToIndex(0);
-                                    }} text="Request ride"/>
-                                    <Btn onPress={() => {setPhase(1)}} styleTxt={{color: Colors[colorScheme ?? "light"].primary,}} styleBtn={{
-                                        borderWidth: 1,
-                                        borderColor: Colors[colorScheme ?? "light"].primary,
-                                        backgroundColor: Colors[colorScheme ?? "light"].bgDark,
-                                    }} text="Return"/>
-                                </View>
-                            </BottomSheetFooter>
-                        )
-                    }
                     return (
                         <BottomSheetFooter {...props}>
-                            <View style={{width: "100%", paddingHorizontal: 20, backgroundColor: Colors[colorScheme ?? "light"].bgDark, paddingBottom: 40,}}>
-                                <Btn onPress={() => {
-                                    setPhase(0);
-                                }} text={"Cancel"}/>
+                            <TouchableOpacity 
+                                style={{width: "100%", height: 50, paddingHorizontal: 20, flexDirection: "row", marginBottom: 5,}}>
+                                <View style={{flex: 1, justifyContent: "center"}}>
+                                    <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 16, fontWeight: 500,}}>Apple Pay</Text>
+                                </View>
+                                <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end"}}>
+                                    <FontAwesomeIcon icon={faAngleRight} size={16} color={Colors[colorScheme ?? "light"].text}/>
+                                </View>
+                            </TouchableOpacity>
+                            <View style={{height: 50, marginHorizontal: 20, flexDirection: "row", marginBottom: 24, gap: 8,}}>
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        setPhase(0)
+                                        bottomSheetRef1.current?.forceClose()
+                                        bottomSheetRef.current?.snapToIndex(0)
+                                    }}
+                                    style={{width: 50, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
+                                    <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].bg}/>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        setPhase(2)
+                                        bottomSheetRef1.current?.forceClose()
+                                        bottomSheetRef2.current?.snapToIndex(0)
+                                    }}
+                                style={{flex: 1, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
+                                <Text style={{fontSize: 18, fontWeight: 500, color: Colors[colorScheme ?? "light"].bg}}>Choose {rideTypeMetadata[selected]?.name}</Text>
+                                </TouchableOpacity>
                             </View>
                         </BottomSheetFooter>
                     )
                 }}
             >
-                { phase == 0 ? 
-                    <BottomSheetScrollView style={{
-                        flex: 1, 
-                        marginBottom: 100, 
-                        backgroundColor: Colors[colorScheme ?? "light"].bgDark
-                    }} 
-                    stickyHeaderIndices={[0]}
-                    >
-                        <View>
-                            <View style={{
-                                width: windowWidth,
-                                alignItems: 'center',
-                                paddingHorizontal: 20,
-                                paddingVertical: 10,
-                                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
-                                marginBottom: 10,
-                            }}>
-                                <Text style={defaultStyles.title}>{title0}</Text>
-                                <Text style={defaultStyles.subtitle}>{subtitle0}</Text>
-                                <View style={{ 
-                                    width: "100%", 
-                                    borderRadius: 15, 
-                                    borderWidth: 1, 
-                                    marginTop: 15, 
-                                    paddingVertical: 10, 
-                                    borderColor: Colors[colorScheme ?? "light"].secondary
-                                }}>
-                                    <View style={{
-                                        height: 20, 
-                                        alignItems: "center", 
-                                        justifyContent: "center", 
-                                        flexDirection: "row", 
-                                        gap: 12
-                                    }}>
-                                        <FontAwesomeIcon 
-                                            icon={faLocationDot} 
-                                            size={16} 
-                                            color={Colors[colorScheme ?? "light"].text}
-                                        />
-                                        <BottomSheetTextInput style={{
-                                            width: "80%", 
-                                            height: "100%", 
-                                            fontSize: 16,
-                                            color: Colors[colorScheme ?? "light"].text, 
-                                            fontFamily:'Outfit_400Regular'
-                                        }} 
-                                        selectTextOnFocus
-                                        placeholderTextColor={Colors[colorScheme ?? "light"].secondary} 
-                                        placeholder='Pickup Location' 
-                                        value={pickupInput} 
-                                        onChangeText={(text) => {setPickupInput(text)}}
-                                        />
-                                    </View>
-                                    <View style={{
-                                        marginLeft: (windowWidth-40)*0.05+30, 
-                                        width: (windowWidth-40)*0.9-30, 
-                                        borderWidth: 0.3, 
-                                        marginTop: 6, 
-                                        borderColor: Colors[colorScheme ?? "light"].text
-                                    }}></View>
-                                    <View style={{
-                                        height: 20, 
-                                        alignItems: "center", 
-                                        justifyContent: "center", 
-                                        marginTop: 8, 
-                                        flexDirection: "row", 
-                                        gap: 12,
-                                    }}>
-                                        <FontAwesomeIcon 
-                                            icon={faMap} 
-                                            size={16} 
-                                            color={Colors[colorScheme ?? "light"].text}
-                                        />
-                                        <BottomSheetTextInput style={{
-                                            width: "80%", 
-                                            height: "100%", 
-                                            fontSize: 16, color: 
-                                            Colors[colorScheme ?? "light"].text, 
-                                            fontFamily:'Outfit_400Regular'
-                                        }} 
-                                        placeholderTextColor={Colors[colorScheme ?? "light"].secondary} 
-                                        placeholder='Where to?' 
-                                        value={destInput} 
-                                        onChangeText={(text) => {setDestInput(text)}}
-                                        selectTextOnFocus
-                                        />
-                                    </View>
-                                </View>
-                            </View>                  
-                        </View>
-                        {data.map((item) => {
-                            return(
-                                <View style={{
-                                    marginHorizontal: 20, 
-                                    marginTop: 12,
-                                    height: 54
-                                }} 
-                                key={item.id}
-                                >
-                                    <TouchableOpacity onPress={() => {
-                                        if (!pickupInput) {
-                                            setPickupInput(item.address)
-                                        } else {
-                                            setDestInput(item.address)
-                                        }
-                                    }} style={{
-                                        alignItems: "center", 
-                                        flex: 1, 
-                                        flexDirection: "row", 
-                                        gap: 15,
-                                    }}
-                                    >
-                                        <View style={{
-                                            height: 30, 
-                                            width: 30, 
-                                            borderRadius: "100%", 
-                                            justifyContent: "center", 
-                                            alignItems: "center"
-                                        }}
-                                        >
-                                            <FontAwesomeIcon 
-                                                icon={faClock} 
-                                                size={15} 
-                                                color={Colors[colorScheme ?? "light"].text}
-                                            />
-                                        </View>
-                                
-                                        <View style={{ height: "100%", }}>
-                                            <Text style={{
-                                                ...defaultStyles.title, 
-                                                fontSize: 14,
-                                            }}
-                                            >
-                                                {item.location}
-                                            </Text>
-                                            <Text style={{
-                                                ...defaultStyles.subtitle, 
-                                                fontSize: 14,
-                                            }}
-                                            >
-                                                {item.address}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                    <View style={{
-                                        marginLeft: 45, 
-                                        width: windowWidth-85, 
-                                        borderWidth: 0.3, 
-                                        marginTop: 12, 
-                                        borderColor: Colors[colorScheme ?? "light"].secondary
-                                    }}
-                                    ></View>
-                                </View>
-                            )
-                        })}
-                        <View style={{
-                            marginHorizontal: 20, 
-                            height: 60
-                        }}
-                        >
-                            <TouchableOpacity onPress={() => {
-                                bottomSheetRef.current?.snapToIndex(0);
-                            }}
-                            style={{
-                                alignItems: "center", 
-                                flex: 1, 
-                                flexDirection: "row", 
-                                gap: 15,
-                            }}
-                            >
-                                <View style={{
-                                    height: 30, 
-                                    width: 30, 
-                                    borderRadius: "100%", 
-                                    backgroundColor: Colors[colorScheme ?? "light"].bg, 
-                                    justifyContent: "center", alignItems: "center"
-                                }}
-                                >
-                                    <FontAwesomeIcon 
-                                        icon={faMapPin} 
-                                        size={15} 
-                                        color={Colors[colorScheme ?? "light"].text}
-                                    />
-                                </View>
-                                <Text style={{
-                                    ...defaultStyles.title, 
-                                    fontSize: 14,
-                                }}
-                                >
-                                    Set location on map
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={{
-                            marginLeft: 65, 
-                            width: windowWidth-85, 
-                            borderWidth: 0.3, 
-                            borderColor: Colors[colorScheme ?? "light"].secondary
-                        }}
-                        ></View>
-                        <View style={{
-                            marginHorizontal: 20, 
-                            height: 60
-                        }}
-                        >
-                            <TouchableOpacity onPress={() => {
-                                bottomSheetRef.current?.snapToIndex(0);
-                            }}
-                            style={{
-                                alignItems: "center", 
-                                flex: 1, 
-                                flexDirection: "row", 
-                                gap: 15,
-                            }}
-                            >
-                                <View style={{
-                                    height: 30, 
-                                    width: 30, 
-                                    borderRadius: "100%", 
-                                    backgroundColor: Colors[colorScheme ?? "light"].bg, 
-                                    justifyContent: "center", alignItems: "center"
-                                }}
-                                >
-                                    <FontAwesomeIcon 
-                                        icon={faStar} 
-                                        size={15} 
-                                        color={Colors[colorScheme ?? "light"].text}
-                                    />
-                                </View>
-                                <Text style={{
-                                    ...defaultStyles.title, 
-                                    fontSize: 14,
-                                }}
-                                >
-                                    Saved places
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </BottomSheetScrollView>  
-                :
-                    phase == 1 ? 
-                        <BottomSheetScrollView style={{
-                            flex: 1, 
-                            marginBottom: 100, 
-                            backgroundColor: Colors[colorScheme ?? "light"].bgDark
-                        }} 
-                        stickyHeaderIndices={[0]}
-                        >
-                            <View>
-                                <View style={{
-                                    width: windowWidth,
-                                    alignItems: 'center',
-                                    paddingHorizontal: 20,
-                                    paddingVertical: 10,
-                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark,
-                                }}>
-                                    <Text style={defaultStyles.title}>{title1}</Text>
-                                    <Text style={defaultStyles.subtitle}>{subtitle1}</Text>
-                                    <TouchableOpacity onPress={() => {
-                                        if (confirmed) {
-                                            setPhase(2);
-                                            setTitle1("Tap to select");
-                                            setSubtitle1("You've got options.");
-                                            setConfirmed(false);
-                                            bottomSheetRef.current?.snapToIndex(1);
-                                        } else {
-                                            bottomSheetRef.current?.snapToIndex(0);
-                                            setTitle1("Tap to confirm");
-                                            setSubtitle1("Great choice, Nobel!");
-                                            setConfirmed(true);
-                                        }
-                                    }}
-                                    style={{
-                                        ...defaultStyles.largeCard, 
-                                        height: 180, 
-                                        width: "100%", 
-                                        marginTop: 20, 
-                                        padding: 20, 
-                                        borderColor: confirmed ? Colors[colorScheme ?? "light"].primary : Colors[colorScheme ?? "light"].secondary, 
-                                        backgroundColor: confirmed ? Colors[colorScheme ?? "light"].bg : Colors[colorScheme ?? "light"].bgDark
-                                    }}
-                                    >
-                                        <View style={{
-                                            flex: 2, 
-                                            justifyContent: "center", 
-                                            alignItems: "center",
-                                        }}
-                                        >
-                                            <FontAwesomeIcon 
-                                                icon={rideTypeData[selected].icon} 
-                                                size={100} 
-                                                color={Colors[colorScheme ?? "light"].primary}
-                                            />
-                                        </View>
-                                        <View style={{ 
-                                            flex: 1, 
-                                            flexDirection: "row" 
-                                        }}
-                                        >
-                                            <View style={{ flex: 2 }}>
-                                                <View style={{
-                                                    flexDirection: "row", 
-                                                    gap: 10, 
-                                                    alignItems: "center",
-                                                }}
-                                                >
-                                                    <Text style={{
-                                                        ...defaultStyles.title, 
-                                                        fontSize: 16
-                                                    }}
-                                                    >
-                                                        {rideTypeData[selected].type}
-                                                    </Text>
-                                                    <View style={{
-                                                        flexDirection: "row", 
-                                                        gap: 2, 
-                                                        justifyContent: "center", 
-                                                        alignItems: "center"
-                                                    }}
-                                                    >
-                                                        <FontAwesomeIcon 
-                                                            icon={faUser} 
-                                                            size={12} 
-                                                            color={Colors[colorScheme ?? "light"].text} 
-                                                        />
-                                                        <Text style={{
-                                                            ...defaultStyles.title, 
-                                                            fontSize: 14
-                                                        }}
-                                                        >
-                                                            {rideTypeData[selected].passengers}
-                                                        </Text>
-                                                    </View>
-                                                </View>
-                                               <View style={{
-                                                    flexDirection: "row", 
-                                                    gap: 6, 
-                                                    alignItems: "center",
-                                                }}
-                                                >
-                                                    <Text style={{
-                                                        ...defaultStyles.subtitle, 
-                                                        fontSize: 14
-                                                    }}
-                                                    >
-                                                        {rideTypeData[selected].est_time}
-                                                    </Text>
-                                                    <FontAwesomeIcon 
-                                                        icon={faCircle} 
-                                                        size={4} 
-                                                        color={Colors[colorScheme ?? "light"].text} 
-                                                    />
-                                                    <Text style={{
-                                                        ...defaultStyles.subtitle, 
-                                                        fontSize: 14
-                                                    }}
-                                                    >
-                                                        {rideTypeData[selected].away_time} min away
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <View style={{
-                                                flex: 1, 
-                                                alignItems: "flex-end"
-                                            }}
-                                            >
-                                                <View style={{
-                                                    height: "100%", 
-                                                    justifyContent: "center", 
-                                                    alignItems: "flex-end",
-                                                }}
-                                                >
-                                                    <Text style={{
-                                                        ...defaultStyles.title, 
-                                                        fontSize: 18,
-                                                    }}
-                                                    >
-                                                        {rideTypeData[selected].price_new}
-                                                    </Text>
-                                                    <Text style={{
-                                                        ...defaultStyles.subtitle, 
-                                                        fontSize: 12, 
-                                                        textDecorationLine: "line-through"
-                                                    }}
-                                                    >
-                                                        {rideTypeData[selected].price_ori}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                    <View style={{
-                                        width:"100%", 
-                                        marginTop: 40,
-                                    }}
-                                    >
-                                        <Text style={{
-                                            ...defaultStyles.title, 
-                                            fontSize: 16,
-                                        }}
-                                        >
-                                            Or select another ride:
-                                        </Text>
-                                    </View>
-                                </View>                  
-                            </View>
-                            {rideTypeData.map((item) => {
-                                if (item.id == selected) return (<View key={item.id}></View>)
-                                return (
-                                    <View key={item.id}>
-                                        <TouchableOpacity onPress={() => {
-                                            setSelected(item.id);
-                                        }}style={{
-                                            height: 80, 
-                                            marginHorizontal: 20, 
-                                            marginVertical: 5,
-                                        }}
-                                        >
-                                            <View style={{
-                                                flex: 1, 
-                                                flexDirection: "row", 
-                                                padding: 10,
-                                            }}
-                                            >
-                                                <View style={{
-                                                    flex: 3, 
-                                                    justifyContent: "center", 
-                                                    alignItems: "center"
-                                                }}
-                                                >
-                                                    <FontAwesomeIcon 
-                                                        icon={item.icon} 
-                                                        size={40} 
-                                                        color={Colors[colorScheme ?? "light"].primary}
-                                                    />
-                                                </View>
-                                                <View style={{
-                                                    flex: 6, 
-                                                    justifyContent: "center", 
-                                                    paddingLeft: 10,
-                                                }}
-                                                >
-                                                    <View style={{
-                                                        flexDirection: "row", 
-                                                        gap: 8, 
-                                                        alignItems: "center",
-                                                    }}
-                                                    >
-                                                        <Text style={{
-                                                            ...defaultStyles.title, 
-                                                            fontSize: 14
-                                                        }}
-                                                        >
-                                                            {item.type}
-                                                        </Text>
-                                                        <View style={{
-                                                            flexDirection: "row", 
-                                                            gap: 2, 
-                                                            justifyContent: "center", 
-                                                            alignItems: "center"
-                                                        }}
-                                                        >
-                                                            <FontAwesomeIcon 
-                                                                icon={faUser} 
-                                                                size={10} 
-                                                                color={Colors[colorScheme ?? "light"].text} 
-                                                            />
-                                                            <Text style={{
-                                                                ...defaultStyles.title, 
-                                                                fontSize: 12
-                                                            }}
-                                                            >
-                                                                {item.passengers}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                    <Text style={{
-                                                        ...defaultStyles.title, 
-                                                        fontSize: 12, 
-                                                        fontWeight: 400,
-                                                    }}>
-                                                        {item.est_time}
-                                                    </Text>
-                                                    <Text style={{
-                                                        ...defaultStyles.subtitle, 
-                                                        fontSize: 12
-                                                    }}
-                                                    >
-                                                        {item.description}
-                                                    </Text>
-                                                </View>
-                                                <View style={{
-                                                    flex: 2, 
-                                                    justifyContent: "center", 
-                                                    alignItems: "flex-end"
-                                                }}
-                                                >
-                                                    <Text style={{
-                                                        ...defaultStyles.title, 
-                                                        fontSize: 16,
-                                                    }}
-                                                    >
-                                                        {item.price_new}
-                                                    </Text>
-                                                    <Text style={{
-                                                        ...defaultStyles.subtitle, 
-                                                        fontSize: 10, 
-                                                        textDecorationLine: "line-through"
-                                                    }}
-                                                    >
-                                                        {item.price_ori}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-                                )
-                            })}
-                        </BottomSheetScrollView>
-                    : 
-                        phase == 2 ?
-                            <BottomSheetScrollView style={{
-                                flex: 1, 
-                                marginBottom: 100, 
-                                backgroundColor: Colors[colorScheme ?? "light"].bgDark
-                            }} 
-                            stickyHeaderIndices={[0]}
-                            >
-                                <View style={{
-                                    width: windowWidth,
-                                    paddingHorizontal: 20,
-                                    paddingVertical: 10,
-                                    backgroundColor: Colors[colorScheme ?? "light"].bgDark
-                                }}>
-                                    <View style={{width: "100%", alignItems: "center"}}>
-                                        <Text style={defaultStyles.title}>Your jurni ride</Text>
-                                        <Text style={defaultStyles.subtitle}>Here's a quick summary.</Text>
-                                    </View>
-                                </View>
-                                <View>
-                                    <View style={{
-                                        ...defaultStyles.mediumCard, 
-                                        marginTop: 14, 
-                                        marginBottom: 20, 
-                                        marginHorizontal: 20, 
-                                        paddingVertical: 10,
-                                    }}
-                                    >
-                                        <View style={{flex: 1}}>
-                                            <View style={{
-                                                width: "100%", 
-                                                alignItems: "center",
-                                            }}
-                                            >
-                                                <Text style={{
-                                                    ...defaultStyles.title, 
-                                                    fontSize: 18,
-                                                }}
-                                                >
-                                                    {rideSummaryData[0].name}
-                                                </Text>
-                                            </View>
-                                            <View style={{
-                                                width: "100%", 
-                                                alignItems: "center",
-                                            }}
-                                            >
-                                                <Text style={{
-                                                    ...defaultStyles.title, 
-                                                    fontSize: 36, 
-                                                    color: Colors[colorScheme ?? "light"].textMuted
-                                                }}
-                                                >
-                                                    {rideSummaryData[0].value}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </View>
-                                <View style={{
-                                    ...defaultStyles.mediumCard, 
-                                    marginHorizontal: 20, 
-                                    padding: 12,
-                                }}
-                                >
-                                    <View style={{
-                                        width: "100%", 
-                                        alignItems: "center",
-                                        marginVertical: 5,
-                                    }}
-                                    >
-                                        <Text style={{
-                                            ...defaultStyles.title, 
-                                            fontSize: 18,
-                                        }}
-                                        >
-                                            Details
-                                        </Text>
-                                    </View>
-                                    {rideSummaryData.map((item) => {
-                                        if (item.name == "Price") {
-                                            return (
-                                                <View key={item.name}></View>
-                                            )
-                                        }
-                                        return (
-                                            <View key={item.name} style={{paddingVertical: 15}}>
-                                                <View style={{
-                                                    flex: 1, 
-                                                    flexDirection: "row",
-                                                }}
-                                                >
-                                                    <View style={{
-                                                        flex: 1, 
-                                                        justifyContent: "center",
-                                                    }}
-                                                    >
-                                                        <Text style={{
-                                                            ...defaultStyles.title, 
-                                                            fontSize: 14,
-                                                        }}
-                                                        >
-                                                            {item.name}
-                                                        </Text>
-                                                    </View>
-                                                    <View style={{
-                                                        flex: 1, 
-                                                        alignItems: "flex-end", 
-                                                        justifyContent: "center",
-                                                    }}
-                                                    >
-                                                        <Text style={{
-                                                            ...defaultStyles.subtitle, 
-                                                            fontSize: 14,
-                                                            textAlign:"right"
-                                                        }}
-                                                        >
-                                                            {item.value}
-                                                        </Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-                                        )
-                                    })}
-                                </View>
-                                <View style={{height: 100, }}></View>
-                            </BottomSheetScrollView>
-                        :
-                            <BottomSheetView style={{
-                                height: windowHeight-265, 
-                                width: "100%", 
-                                backgroundColor: Colors[colorScheme ?? "light"].bgDark
-                            }}
-                            >
-                                <View style={{
-                                    height: 390, 
-                                    width: "100%", 
-                                    justifyContent: "center", 
-                                    alignItems: "center"
-                                }}
-                                >
-                                    <View style={{
-                                        height: 300, 
-                                        width: 300, 
-                                        backgroundColor: Colors[colorScheme ?? "light"].bg, 
-                                        justifyContent: "center", 
-                                        alignItems: "center", 
-                                        borderRadius: 50,
-                                    }}
-                                    >
-                                        <FontAwesomeIcon 
-                                            icon={faCar} 
-                                            size={100} 
-                                            color={Colors[colorScheme ?? "light"].primary} 
-                                        />
-                                        <Text style={{
-                                            ...defaultStyles.title, 
-                                            fontSize: 16, 
-                                            color: Colors[colorScheme ?? "light"].textMuted, 
-                                            marginTop: 30,
-                                        }}
-                                        >
-                                            Finding a ride...
-                                        </Text>
-                                    </View>
-                                </View>
-                                <View style={{
-                                    height: windowHeight-265-390, 
-                                    width: "100%", 
-                                    justifyContent: "center", 
-                                    alignItems: "center", 
-                                    paddingHorizontal: 20,
-                                }}
-                                >
-                                    <Text style={{
-                                        ...defaultStyles.title, 
-                                        fontSize: 14
-                                    }}
-                                    >
-                                        Did you know?
-                                    </Text>
-                                    <Text style={{
-                                        ...defaultStyles.subtitle, 
-                                        fontSize: 12, 
-                                        textAlign: "center",
-                                        paddingHorizontal: 50, 
-                                        marginTop: 5,
-                                    }}
-                                    >
-                                        jurni's logo is made up of the location icon and the capital letter J
-                                    </Text>
-                                    <Text></Text>
-                                </View>
-                            </BottomSheetView>
-                }
+                <ConfirmRide
+                    selectedId={selected}
+                    nextRef={bottomSheetRef2}
+                    setPhase={setPhase}
+                    mapRef={map}
+                    distance={distance}
+                    duration={duration}
+                    silentOnly={silentOnly}
+                />
+                <SelectRide
+                    selectedId={selected}
+                    setSelected={setSelected}
+                    nextRef={bottomSheetRef2}
+                    setPhase={setPhase}
+                    mapRef={map}
+                    distance={distance}
+                    duration={duration}
+                    silentOnly={silentOnly}
+                    setSilentOnly={setSilentOnly}
+                />
+            </BottomSheet>
+            <BottomSheet 
+                ref={bottomSheetRef2} 
+                index={-1}
+                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
+                enableHandlePanningGesture={false}
+                keyboardBehavior="interactive"
+                snapPoints={snapPoints2}
+                enableDynamicSizing={false}
+                keyboardBlurBehavior='restore'
+                topInset={150}
+                containerStyle={{zIndex: 10000}}
+                onChange={(position) => {
+                    if (position == 0) {
+                        camera.current?.setCamera({
+                            centerCoordinate: pickupCoords,
+                            padding: {paddingBottom: 260, paddingLeft: 0, paddingRight: 0, paddingTop: 0},
+                            zoomLevel: 18,
+                        });
+                    }
+                }}
+            >
+                <ConfirmPickup 
+                    pickupInput={pickupInput} 
+                    setPickupInput={setPickupInput}
+                    destInput={destInput}
+                    moving={moving} 
+                    setPhase={setPhase} 
+                    prevRef={bottomSheetRef1}
+                    riderId={user?.uid}
+                    price={price}
+                    typeId={selected}
+                    pickupCoords={pickupCoords}
+                    destCoords={destCoords}
+                    silentOnly={silentOnly}
+                />
             </BottomSheet>
         </GestureHandlerRootView>
     )

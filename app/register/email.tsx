@@ -12,6 +12,7 @@ import Btn from '../../components/CustomButton';
 import { useEffect, useState }  from 'react';
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
+import { faUser } from '@fortawesome/free-solid-svg-icons/faUser';
 
 export default function RegisterEmailScreen() {
     const router = useRouter();
@@ -19,15 +20,23 @@ export default function RegisterEmailScreen() {
     const defaultStyles = StyleDefault({ colorScheme });
 
     const [email, setEmail] = useState<string>("");
+    const [name, setName] = useState<string>("");
 
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
 
-    async function addEmail() {
+    async function addDetails() {
         setErrorMessage("");
         setErrorVisibility(false);
 
         const trimmedEmail = email.trim();
+        const trimmedName = name.trim();
+
+        if (!trimmedName) {
+            setErrorMessage("Name is required.");
+            setErrorVisibility(true);
+            return;
+        }
 
         if (!trimmedEmail) {
             setErrorMessage("Email is required.");
@@ -45,7 +54,7 @@ export default function RegisterEmailScreen() {
             return;
         }
 
-        router.push({pathname: 'register/password', params: {email: trimmedEmail}});
+        router.push({pathname: 'register/password', params: {email: trimmedEmail, name: trimmedName}});
     }
 
     return (
@@ -53,9 +62,15 @@ export default function RegisterEmailScreen() {
             <SafeAreaView style={defaultStyles.container}>
                 <KeyboardAvoidingView style={{flex: 1,}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <View style={{flex: 5, paddingTop: 30,}}>
-                        <Text style={defaultStyles.title}>Enter your email</Text>
-                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Let's get you setup with your email</Text>
+                        <Text style={defaultStyles.title}>Enter your details</Text>
+                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Let's get your profile setup</Text>
                         <View style={{marginTop: 20, height: 60,}}>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faUser} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} placeholder='Full Name' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} value={name} onChangeText={setName}/>
+                            </View>
+                        </View>
+                        <View style={{marginTop: 8, height: 60,}}>
                             <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
                                 <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
                                 <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} placeholder='Email' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
@@ -69,7 +84,7 @@ export default function RegisterEmailScreen() {
                             <BackBtn onPress={() => {router.back()}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Next" onPress={addEmail} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Next" onPress={addDetails} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

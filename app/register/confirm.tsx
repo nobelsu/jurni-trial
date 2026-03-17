@@ -7,12 +7,14 @@ import { Colors } from '../../constants/Colors';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faKey } from '@fortawesome/free-solid-svg-icons/faKey'
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
+import firestore from '@react-native-firebase/firestore';
 
 import auth, { linkWithCredential } from '@react-native-firebase/auth';
 
 import { useState } from 'react';
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
+import type { UserSettings } from "../../lib/users";
 
 export default function ConfirmPasswordScreen() {
     const router = useRouter();
@@ -21,7 +23,7 @@ export default function ConfirmPasswordScreen() {
 
     const user = auth().currentUser;
 
-    const params = useGlobalSearchParams<{ email: string, password : string }>();
+    const params = useGlobalSearchParams<{ email: string, password : string, name: string }>();
 
     const [passwordConfirm, setPasswordConfirm] = useState<string>("");
 
@@ -34,6 +36,31 @@ export default function ConfirmPasswordScreen() {
             setErrorVisibility(false);
             if (!user) return;
             await linkWithCredential(user, auth.EmailAuthProvider.credential(params.email, params.password));
+
+            const initialSettings: UserSettings = {
+                default_ride_type: "basic",
+                silent_only: false,
+                default_pickup_label: "",
+                default_pickup_coords: null,
+                ride_updates_push: true,
+                promotions_push: false,
+                large_text: false,
+                high_contrast_map: false,
+                last_email_change_at: null,
+            };
+
+            await firestore().collection("users").doc(user.uid).set({
+                metadata: {
+                    favourites: [],
+                    pickup_history: [],
+                    destination_history: [],
+                    name: params.name,
+                    rating: 5,
+                    rides_taken: 0,
+                },
+                settings: initialSettings,
+            });
+
             router.navigate('home/map');
         } else {
             setErrorMessage("Passwords do not match.");

@@ -3,13 +3,14 @@ import { Colors } from '../constants/Colors';
 import { useColorScheme } from 'react-native';
 
 interface BtnProps {
-    onPress?: () => void;
-    text: string;
-    styleBtn?: ViewStyle;
-    styleTxt?: TextStyle;
+    onPress?: () => void
+    text: string
+    styleBtn?: ViewStyle
+    styleTxt?: TextStyle
+    disabled?: boolean
 }
 
-export default function Btn({onPress, text, styleBtn, styleTxt}: BtnProps) {
+export default function Btn({onPress, text, styleBtn, styleTxt, disabled=false}: BtnProps) {
     const colorScheme = useColorScheme();
  
     return (
@@ -17,13 +18,14 @@ export default function Btn({onPress, text, styleBtn, styleTxt}: BtnProps) {
             onPress={onPress} 
             style={{
                 backgroundColor: Colors[colorScheme ?? "light"].primary,
-                padding: 16,
+                padding: 14,
                 borderRadius: 18,
                 justifyContent: "center",
                 alignItems: "center",
                 width: "100%",
                 ...styleBtn
             }}
+            disabled={disabled}
         >
             <Text style ={{
                 color: colorScheme == "light" ? Colors["light"].bgDark : Colors["light"].bgLight,

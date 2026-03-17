@@ -9,14 +9,15 @@ import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone'
 import { useState } from 'react';
 import BackBtn from '../components/BackButton';
 import Error from '../components/Error';
+import PhoneInput, { ICountry, isValidPhoneNumber } from 'react-native-international-phone-number';
 
 export default function PhoneNumberScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const defaultStyles = StyleDefault({ colorScheme });
 
-    const [ccInput, setCC] = useState<string>("44");
-    const [numberInput, setNumber] = useState<string>("");
+    const [selectedCountry, setSelectedCountry] = useState<ICountry | undefined>(undefined);
+    const [inputValue, setInputValue] = useState<string>("");
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
 
@@ -24,43 +25,36 @@ export default function PhoneNumberScreen() {
         setErrorMessage("");
         setErrorVisibility(false);
 
-        const cc = ccInput.replace(/[^0-9]/g, "");
-        const number = numberInput.replace(/[^0-9]/g, "");
-
-        if (!cc) {
-            setErrorMessage("Country code is required.");
+        if (!selectedCountry) {
+            setErrorMessage("Please select your country.");
             setErrorVisibility(true);
             return;
         }
 
-        if (!number) {
+        if (!inputValue) {
             setErrorMessage("Phone number is required.");
             setErrorVisibility(true);
             return;
         }
 
-        if (!/^\d{1,3}$/.test(cc) || cc.startsWith("0")) {
-            setErrorMessage("Invalid country code.");
+        if (!isValidPhoneNumber(inputValue, selectedCountry)) {
+            setErrorMessage("Invalid phone number for selected country.");
             setErrorVisibility(true);
             return;
         }
 
-        if (!/^\d+$/.test(number) || number.length < 2) {
-            setErrorMessage("Invalid phone number.");
-            setErrorVisibility(true);
-            return;
-        }
+        const root = selectedCountry.idd?.root ?? '';
+        const suffix = Array.isArray(selectedCountry.idd?.suffixes) && selectedCountry.idd?.suffixes.length > 0
+            ? selectedCountry.idd?.suffixes[0]
+            : '';
+        const dialCode = `${root}${suffix}`;
 
-        const totalLength = cc.length + number.length;
-        if (totalLength < 7 || totalLength > 15) {
-            setErrorMessage("Invalid phone number length.");
-            setErrorVisibility(true);
-            return;
-        }
+        const normalizedDialCode = dialCode.startsWith('+') ? dialCode : `+${dialCode}`;
+        const fullNumber = `${normalizedDialCode}${inputValue.replace(/[^0-9]/g, "")}`;
 
         router.push({
             pathname: "/otp",
-            params: { number: "+" + cc + number },
+            params: { number: fullNumber },
         });
     }
 
@@ -68,47 +62,54 @@ export default function PhoneNumberScreen() {
         <TouchableWithoutFeedback onPress={() => {Keyboard.dismiss()}}>
             <SafeAreaView style={defaultStyles.container}>
                 <KeyboardAvoidingView style={{flex: 1,}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                    <View style={{flex: 5, paddingTop: 30,}}>
+                        <View style={{flex: 5, paddingTop: 30,}}>
                         <Text style={defaultStyles.title}>Enter your mobile number</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We'll check if you have an account or help you create one</Text>
-                        <View style={{flexDirection: "row", marginTop: 20, gap: 4, height: 60}}>
-                            <View style={{flex: 4, justifyContent: "center", borderTopLeftRadius: 15, borderBottomLeftRadius: 15,  backgroundColor: Colors[colorScheme ?? "light"].bg}}>
-                                <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8,}}>
-                                    <View style={{marginLeft: 20}}>
-                                        <FontAwesomeIcon icon={faPhone} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
+                            <View style={{flexDirection: "row", marginTop: 20, gap: 4, height: 60}}>
+                                <View style={{flex: 1, justifyContent: "center", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg}}>
+                                    <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8, paddingHorizontal: 20}}>
+                                        <View>
+                                            <FontAwesomeIcon icon={faPhone} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
+                                        </View>
+                                        <View style={{flex: 1}}>
+                                            <PhoneInput
+                                                defaultCountry="GB"
+                                                value={inputValue}
+                                                onChangePhoneNumber={setInputValue}
+                                                selectedCountry={selectedCountry}
+                                                onChangeSelectedCountry={setSelectedCountry}
+                                                language="eng"
+                                                placeholder="Phone Number"
+                                                theme={colorScheme === 'dark' ? 'dark' : 'light'}
+                                                phoneInputStyles={{
+                                                    container: {
+                                                        backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                                        borderWidth: 0,
+                                                    },
+                                                    flagContainer: {
+                                                        backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                                    },
+                                                    divider: {
+                                                        backgroundColor: Colors[colorScheme ?? "light"].border ?? Colors[colorScheme ?? "light"].textMuted,
+                                                    },
+                                                    callingCode: {
+                                                        color: Colors[colorScheme ?? "light"].textMuted,
+                                                        fontFamily: 'Outfit_400Regular',
+                                                        fontSize: 16,
+                                                    },
+                                                    input: {
+                                                        color: Colors[colorScheme ?? "light"].textMuted,
+                                                        fontFamily: 'Outfit_400Regular',
+                                                        fontSize: 16,
+                                                    },
+                                                }}
+                                                phoneInputPlaceholderTextColor={Colors[colorScheme ?? "light"].textDull}
+                                                phoneInputSelectionColor={Colors[colorScheme ?? "light"].textMuted}
+                                            />
+                                        </View>
                                     </View>
-                                    
-                                    <View style={{ height: "100%", justifyContent: "center", alignItems: "center", flexDirection: "row", marginLeft: 10, gap: 5,}}>
-                                        <Text style={{ 
-                                            fontSize: 16, 
-                                            fontFamily:'Outfit_400Regular', 
-                                            color: Colors[colorScheme ?? "light"].textMuted
-                                        }}
-                                        >
-                                            +
-                                        </Text>
-                                        <TextInput style={{
-                                            fontSize: 16,  
-                                            fontFamily:'Outfit_400Regular', 
-                                            height: "100%", 
-                                            width: 40, 
-                                            color: Colors[colorScheme ?? "light"].textMuted
-                                        }} 
-                                        placeholderTextColor={Colors[colorScheme ?? "light"].textMuted} 
-                                        keyboardType='number-pad' 
-                                        value={ccInput} 
-                                        onChangeText={setCC} 
-                                        placeholder="CC" 
-                                        selectionColor={Colors[colorScheme ?? "light"].textMuted}
-                                        />
-                                    </View>
-                                    
                                 </View>
                             </View>
-                            <View style={{flex: 9, alignItems: "center", justifyContent: "center", borderTopRightRadius: 15, borderBottomRightRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg}}>
-                                <TextInput style={{width: "90%", height: "80%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} keyboardType='number-pad' placeholderTextColor={Colors[colorScheme ?? "light"].textDull} value={numberInput} onChangeText={setNumber} placeholder='Phone Number' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted}/>
-                            </View>
-                        </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}
                     </View>
                     <View style={{flex: 1, flexDirection: "row"}}>

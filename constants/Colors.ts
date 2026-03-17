@@ -6,22 +6,22 @@ export const Colors = {
     textMuted: "#85857a",
     textDull: "#6a6a62",
     textBtn: "#85857a",
-    bgDark: "#ffffff",
-    bg: "#f3f3f2",
-    bgLight: "#e7e7e4",
-    bgBtn: "#e7e7e4"
+    bgDark: "#faeaf5",
+    bg: "#f6d5ea",
+    bgLight: "#f1c0e0",
+    bgBtn: "#ecece9"
 
   },
   dark: {
-    primary: "#e2255b",
+    primary: "#DA1E52",
     secondary: "#e9769a",
     text: "#f3f3f2",
-    textMuted: "#85857a",
-    textDull: "#9d9d95",
+    textMuted: "#F2D8D0",
+    textDull: "#99A1AF",
     textBtn: "#85857a",
-    bgDark: "#000000",
-    bg: "#0d0d0c",
-    bgLight: "#1b1b18",
-    bgBtn: "#1b1b18"
+    bgDark: "#12040C",
+    bg: "#1B070E",
+    bgLight: "#240C17",
+    bgBtn: "#161613"
   },
 };

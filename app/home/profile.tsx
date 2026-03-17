@@ -8,6 +8,7 @@ import { faBars } from "@fortawesome/free-solid-svg-icons/faBars"
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import StyleDefault from "../../constants/DefaultStyles"
 import Btn from "../../components/CustomButton"
+import { getAuth, signOut } from '@react-native-firebase/auth';
 
 export default function ProfileScreen() {
     const navigation = useNavigation()
@@ -28,7 +29,7 @@ export default function ProfileScreen() {
                     height: 50,
                     width: 50,
                     borderRadius: 100,
-                    backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground,
+                    backgroundColor: Colors[colorScheme ?? "light"].bgDark,
                     top: 0,
                     left: 20,
                     zIndex: 1000,
@@ -57,7 +58,7 @@ export default function ProfileScreen() {
                 >
                     This is not an actual page...
                 </Text>
-                <Btn text="return home" onPress={() => {router.navigate("/")}}/>
+                <Btn text="return home" onPress={() => {signOut(getAuth()).then(() => console.log('User signed out!')); router.navigate("/")}}/>
             </View>
         </SafeAreaView>
     )

@@ -20,12 +20,12 @@ export default function StyleDefault({ colorScheme } : StyleDefaultProps) {
       paddingTop: 10,
     },
     title: {
-      fontSize: 24,
+      fontSize: 22,
       fontFamily: 'Outfit_600SemiBold',
       color: Colors[colorScheme ?? "light"].text,
     },
     subtitle: {
-      fontSize: 16,
+      fontSize: 18,
       fontFamily: 'Outfit_400Regular',
       color: Colors[colorScheme ?? "light"].textMuted,
     },

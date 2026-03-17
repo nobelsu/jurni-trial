@@ -5,6 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { Dimensions } from 'react-native';
+import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
+import { useEffect, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 
 export default function GettingStartedScreen() {
     const router = useRouter();
@@ -25,7 +28,7 @@ export default function GettingStartedScreen() {
                 </View>
             </View> */}
             <View style={{flex: 1, justifyContent: "center", alignItems: "center", width: "100%"}}>
-                <Btn styleBtn={{}} text="Get started" onPress={() => {router.navigate('phone_number');}} />
+                <Btn styleBtn={{}} text="Get started" onPress={() => {router.navigate('/phone_number');}} />
             </View>
         </SafeAreaView>
     )

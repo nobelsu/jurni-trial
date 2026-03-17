@@ -1,8 +1,4 @@
-import { faCarSide } from "@fortawesome/free-solid-svg-icons/faCarSide";
-import { faTruckPickup } from "@fortawesome/free-solid-svg-icons/faTruckPickup";
-import { faCaravan } from "@fortawesome/free-solid-svg-icons/faCaravan";
-
-export const validPhoneNumber = "44111111111";
+import { RideTypeDict, } from "../lib/cost";
 
 export const pickupData = [
     { "id": "P1", "location": "Warehouse Alpha", "address": "123 Industrial Park Rd, Springfield" },
@@ -12,47 +8,69 @@ export const pickupData = [
 ];
 
 export const destinationData = [
-    { "id": "D1", "location": "Retail Store Central", "address": "501 Commerce Blvd, Lakewood" },
-    { "id": "D2", "location": "Customer Dropoff Zone A", "address": "77 Oakridge Lane, Meadowview" },
-    { "id": "D3", "location": "Regional Distribution Center", "address": "200 Transit Way, Pinecrest" },
-    { "id": "D4", "location": "Express Delivery Point", "address": "5 Sunrise Drive, Fairmont" },
+    { "id": "D1", "location": "Retail Store Central", "address": "501 Commerce Blvd, Lakewood", "distance": "1.4 mi"},
+    { "id": "D2", "location": "Customer Dropoff Zone A", "address": "77 Oakridge Lane, Meadowview", "distance": "2.1 mi"},
+    { "id": "D3", "location": "Regional Distribution Center", "address": "200 Transit Way, Pinecrest", "distance": "1.6 mi"},
+    { "id": "D4", "location": "Express Delivery Point", "address": "5 Sunrise Drive, Fairmont", "distance": "32 mi"},
 ];
 
-export const rideTypeData = [
-    {
-        "id": 0, 
-        "type": "JurniX", 
-        "est_time": "1.09 pm",
-        "away_time": "3", 
-        "passengers": "4", 
-        "price_new": "£3.00", 
-        "price_ori": "£5.00",
-        "description": "Faster speeds",
-        "icon": faCarSide,
+export const rideTypeMetadata: RideTypeDict = {
+    "basic": {
+        name: "Jurni Go",
+        passengers: 4, 
+        tags: [0],
+        time: 3,
+        baseFare: 2.00,
+        costPerKm: 0.50,
+        costPerMinute: 0.20,
+        minimumFare: 3.00,
+        surgeMultiplier: 1.0,
     },
-    {
-        "id": 1, 
-        "type": "Regular", 
-        "est_time": "1.12 pm",
-        "away_time": "6", 
-        "passengers": "4", 
-        "price_new": "£2.50", 
-        "price_ori": "£4.00",
-        "description": "The original",
-        "icon": faTruckPickup,
-    }, 
-    {
-        "id": 2, 
-        "type": "Jurni+", 
-        "est_time": "1.14 pm",
-        "away_time": "8", 
-        "passengers": "6", 
-        "price_new": "£8.00", 
-        "price_ori": "£12.50",
-        "description": "Larger sizes",
-        "icon": faCaravan,
-    }
-]
+    "plus": {
+        name: "Jurni Plus",
+        passengers: 4,
+        tags: [1],
+        time: 4,
+        baseFare: 3.00,
+        costPerKm: 0.50,
+        costPerMinute: 0.20,
+        minimumFare: 3.00,
+        surgeMultiplier: 1.0,
+    },
+    "exec": {
+        name: "Jurni Executive",
+        passengers: 2,
+        tags: [2],
+        time: 4,
+        baseFare: 3.00,
+        costPerKm: 0.50,
+        costPerMinute: 0.20,
+        minimumFare: 3.00,
+        surgeMultiplier: 1.0,
+    },
+    "xl": {
+        name: "Jurni XL",
+        passengers: 6,
+        tags: [3],
+        time: 4,
+        baseFare: 3.00,
+        costPerKm: 0.50,
+        costPerMinute: 0.20,
+        minimumFare: 3.00,
+        surgeMultiplier: 1.0,
+    },
+    "access": {
+        name: "Jurni Access",
+        passengers: 4,
+        tags: [4],
+        time: 4,
+        baseFare: 3.00,
+        costPerKm: 0.50,
+        costPerMinute: 0.20,
+        minimumFare: 3.00,
+        surgeMultiplier: 1.0,
+    },
+};
 
 export const rideSummaryData = [
     {"name": "Price", "value": "£3.00"},

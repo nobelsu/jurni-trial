@@ -6,6 +6,7 @@ export default function RegisterStackLayout() {
         <Stack.Screen name="email" />
         <Stack.Screen name="password" />
         <Stack.Screen name="confirm" />
+        <Stack.Screen name="details" />
     </Stack>
   );
 }

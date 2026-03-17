@@ -24,8 +24,11 @@ export default function HomeStackLayout() {
         <Drawer.Screen name="map" options={{
           drawerLabel: 'ride',
         }}/>
-        <Drawer.Screen name="profile" options={{
-          drawerLabel: 'profile',
+        <Drawer.Screen name="ride-history" options={{
+          drawerLabel: 'Ride history',
+        }}/>
+        <Drawer.Screen name="settings" options={{
+          drawerLabel: 'Settings',
         }}/>
     </Drawer>
   );
