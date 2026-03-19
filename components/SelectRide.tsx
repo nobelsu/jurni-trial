@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { ScrollView } from "react-native-gesture-handler";
 import RideComponent from "./Ride";
 import { RideTypeId } from "../lib/cost";
+import { Position } from "../lib/mapbox";
 
 interface SelectRideProps {
     selectedId: RideTypeId,
@@ -20,9 +21,11 @@ interface SelectRideProps {
     duration: number,
     silentOnly: boolean,
     setSilentOnly: React.Dispatch<React.SetStateAction<boolean>>,
+    pickupCoords: Position,
+    setPickupInput: React.Dispatch<React.SetStateAction<string>>,
 }
 
-export default function SelectRide({selectedId, setSelected, nextRef, mapRef, setPhase, distance, duration, silentOnly, setSilentOnly} : SelectRideProps) {
+export default function SelectRide({selectedId, setSelected, nextRef, mapRef, setPhase, distance, duration, silentOnly, setSilentOnly, pickupCoords, setPickupInput} : SelectRideProps) {
     const { animatedPosition, animatedIndex, snapToIndex, forceClose } = useBottomSheet();
     const opacity = useSharedValue(0);
 
@@ -90,7 +93,7 @@ export default function SelectRide({selectedId, setSelected, nextRef, mapRef, se
                     </View>
                     <BottomSheetScrollView style={{width: "100%", height: 329}}>
                         {rideIds.map((id) => {
-                            return (<RideComponent id={id} key={`${id}`} selected={selectedId} setSelected={setSelected} setPhase={setPhase} nextRef={nextRef} mapRef={mapRef} distance={distance} duration={duration}/>)
+                            return (<RideComponent id={id} key={`${id}`} selected={selectedId} setSelected={setSelected} setPhase={setPhase} nextRef={nextRef} mapRef={mapRef} distance={distance} duration={duration} pickupCoords={pickupCoords} setPickupInput={setPickupInput}/>)
                         })}
                     </BottomSheetScrollView>
                 </View>

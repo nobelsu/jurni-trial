@@ -6,7 +6,7 @@ import StyleDefault from '../constants/DefaultStyles';
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons/faMagnifyingGlass";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import Btn from "./CustomButton";
-import { MAPBOX_ACCESS_TOKEN, obtainDirections, obtainWalkingDirections, Position } from "../lib/mapbox";
+import { MAPBOX_ACCESS_TOKEN, obtainDirections, obtainWalkingDirections, Position, DrivingDirectionsResult } from "../lib/mapbox";
 import { computeBBox, isSinglePoint } from "../lib/shared-util";
 import { Camera, MapView } from "@rnmapbox/maps";
 import * as turf from "@turf/turf"
@@ -32,7 +32,16 @@ interface SetLocationProps {
     cameraRef: React.RefObject<Camera|null>,
     setSw: React.Dispatch<React.SetStateAction<Position | undefined>>,
     setNe: React.Dispatch<React.SetStateAction<Position | undefined>>,
+    setUpdated: React.Dispatch<React.SetStateAction<boolean>>,
     userLocation: Position,
+    onNoDrivingRoute?: () => void,
+    onConfirmLocations?: (override?: {
+        pickupName?: string;
+        pickupCoords?: Position;
+        destName?: string;
+        destCoords?: Position;
+    }) => void,
+    onPartialConfirmToggle?: () => void,
 }
 
 async function obtainAddress(coords: Position,) {
@@ -64,9 +73,13 @@ export default function SetLocation({
     cameraRef, 
     setSw,
     setNe,
+    setUpdated,
     setDistance,
     setDuration,
-    userLocation
+    userLocation,
+    onNoDrivingRoute,
+    onConfirmLocations,
+    onPartialConfirmToggle,
 }: SetLocationProps) {
     const { animatedPosition, animatedIndex, snapToIndex, forceClose } = useBottomSheet();
     const opacity = useSharedValue(1);
@@ -151,36 +164,74 @@ export default function SetLocation({
                         />
                     </View>
                 </TouchableOpacity>
-                <Btn styleBtn={{marginTop: 20,}} text={"Confirm " + btnText} onPress={async () => {
-                    if (destInput && pickupInput) {
-                        const data = await obtainDirections(pickupCoords, destCoords)
-                        var line = turf.lineString(data.coordinates);
-                        var curved = turf.bezierSpline(line, {resolution: 10000});
-                        setCoordinates(curved.geometry.coordinates as Position[]);
-                        
-                        setPickupCoords(curved.geometry.coordinates[0] as Position);
-                        const res = await obtainAddress(curved.geometry.coordinates[0] as Position);
-                        setPickupInput(res.data.features[0].properties.name_preferred);
+                <Btn
+                    styleBtn={{ marginTop: 20 }}
+                    text={"Confirm " + btnText}
+                    onPress={async () => {
+                        if (onConfirmLocations) {
+                            onConfirmLocations();
+                            return;
+                        }
 
-                        const walkingCoordinates = await obtainWalkingDirections(curved.geometry.coordinates[0] as Position, userLocation)
-                        // var line2 = turf.lineString(walkingCoordinates);
-                        // var curved2 = turf.bezierSpline(line2, {resolution: 10000});
-                        // setWalkingCoordinates(curved2.geometry.coordinates as Position[]);
-                        setWalkingCoordinates(walkingCoordinates)
+                        if (destInput && pickupInput) {
+                            try {
+                                const data: DrivingDirectionsResult = await obtainDirections(pickupCoords, destCoords);
+                                if (data.kind === "no_route") {
+                                    setCoordinates([]);
+                                    setWalkingCoordinates([]);
+                                    setDistance(0);
+                                    setDuration(0);
+                                    setPhase(0);
+                                    onNoDrivingRoute?.();
+                                    return;
+                                }
 
-                        const bbox = computeBBox(data.coordinates)
-                        setSw([bbox.minLat, bbox.minLng])
-                        setNe([bbox.maxLat, bbox.maxLng])
-                        setDistance(data.distance)
-                        setDuration(data.duration)
-                        cameraRef.current?.fitBounds([bbox.maxLat, bbox.maxLng], [bbox.minLat, bbox.minLng], [70, 70, 120, 70], 800)
+                                const line = turf.lineString(data.coordinates);
+                                const curved = turf.bezierSpline(line, { resolution: 10000 });
+                                setCoordinates(curved.geometry.coordinates as Position[]);
 
-                        setPhase(1);
-                        forceClose();
-                        nextRef.current?.snapToIndex(0)
-                    } else if (pickupInput && !toggle) setToggle(true);
-                    else if (destInput && toggle) setToggle(false);
-                }}
+                                setPickupCoords(curved.geometry.coordinates[0] as Position);
+                                const res = await obtainAddress(curved.geometry.coordinates[0] as Position);
+                                setPickupInput(res.data.features[0].properties.name_preferred);
+
+                                const walkingCoordinates = await obtainWalkingDirections(
+                                    curved.geometry.coordinates[0] as Position,
+                                    userLocation
+                                );
+                                setWalkingCoordinates(walkingCoordinates);
+
+                                const bbox = computeBBox(data.coordinates);
+                                setUpdated(true);
+                                setSw([bbox.minLat, bbox.minLng]);
+                                setNe([bbox.maxLat, bbox.maxLng]);
+                                setDistance(data.distance);
+                                setDuration(data.duration);
+                                cameraRef.current?.fitBounds(
+                                    [bbox.maxLat, bbox.maxLng],
+                                    [bbox.minLat, bbox.minLng],
+                                    [70, 70, 120, 70],
+                                    800
+                                );
+
+                                setPhase(1);
+                                forceClose();
+                                nextRef.current?.snapToIndex(0);
+                            } catch (e) {
+                                setCoordinates([]);
+                                setWalkingCoordinates([]);
+                                setDistance(0);
+                                setDuration(0);
+                                setPhase(0);
+                                onNoDrivingRoute?.();
+                            }
+                        } else if (onPartialConfirmToggle) {
+                            onPartialConfirmToggle();
+                        } else if (pickupInput && !toggle) {
+                            setToggle(true);
+                        } else if (destInput && toggle) {
+                            setToggle(false);
+                        }
+                    }}
                 disabled={(!pickupInput && !toggle) || (!destInput && toggle)}
                 />
             </View>                  

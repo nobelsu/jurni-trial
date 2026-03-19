@@ -7,7 +7,7 @@ import StyleDefault from "../../../../constants/DefaultStyles";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type { Ride } from "../../../../lib/rides";
 import { getRideTypeDisplayName } from "../../../../lib/rides";
-import { MAPBOX_ACCESS_TOKEN, obtainDirections, Position } from "../../../../lib/mapbox";
+import { MAPBOX_ACCESS_TOKEN, obtainDirections, Position, DrivingDirectionsResult } from "../../../../lib/mapbox";
 import { MapView, Camera, setAccessToken } from "@rnmapbox/maps";
 import Route from "../../../../components/Route";
 import { computeBBox, type LatLng } from "../../../../lib/shared-util";
@@ -95,12 +95,8 @@ function RideDetailsSheetContent({
         (currentPosition, previousPosition) => {
             "worklet";
             if (!previousPosition) return
-            console.log("currentPosition", currentPosition);
-            console.log("previousPosition", previousPosition);
             let curr = +(Math.round(Math.abs(currentPosition) - 194.0)/240.0).toFixed(1);
             let prev = +(Math.round(Math.abs(previousPosition) - 194.0)/240.0).toFixed(1);
-            console.log("curr", curr);
-            console.log("prev", prev);
             if (curr !== prev && curr <= 1.00 && opacity.value != curr) {
                 opacity.value = withTiming(curr, { duration: 10 });
             }
@@ -447,6 +443,7 @@ export default function RideDetailsScreen() {
   const [driverRating, setDriverRating] = useState<number | null>(null);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingStatus, setRatingStatus] = useState<string | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
 
   const cameraRef = useRef<Camera | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
@@ -514,6 +511,7 @@ export default function RideDetailsScreen() {
   useEffect(() => {
     if (!canShowRoute || !ride?.pickup_geopoint || !ride?.destination_geopoint) {
       setRouteCoords([]);
+      setRouteError(null);
       return;
     }
     const pickupPos: Position = [
@@ -526,12 +524,19 @@ export default function RideDetailsScreen() {
     ];
 
     obtainDirections(pickupPos, destPos)
-      .then((res) => {
+      .then((res: DrivingDirectionsResult) => {
+        if (res.kind === "no_route") {
+          setRouteCoords([]);
+          setRouteError("No driving route is available to display this trip.");
+          return;
+        }
+        setRouteError(null);
         setRouteCoords(res.coordinates as Position[]);
       })
       .catch((e) => {
         console.log("Failed to load route for ride details", e);
         setRouteCoords([]);
+        setRouteError("Failed to load route for this trip.");
       });
   }, [canShowRoute, ride?.pickup_geopoint, ride?.destination_geopoint]);
 
@@ -655,6 +660,33 @@ export default function RideDetailsScreen() {
             />
             <Route coordinates={routeCoords} />
           </MapView>
+        )}
+        {routeError && (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 280,
+              left: 20,
+              right: 20,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderRadius: 10,
+              backgroundColor: colors.bg,
+              borderWidth: 1,
+              borderColor: colors.textDull,
+            }}
+          >
+            <Text
+              style={{
+                ...defaultStyles.subtitle,
+                fontSize: 13,
+                textAlign: "center",
+                color: colors.text,
+              }}
+            >
+              {routeError}
+            </Text>
+          </View>
         )}
 
         <View

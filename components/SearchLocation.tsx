@@ -35,6 +35,13 @@ interface SearchLocationProps {
     setDestCoords: React.Dispatch<React.SetStateAction<Position>>,
     userLocation: Position,
     userId: string | undefined,
+    onConfirmLocations?: (override?: {
+        pickupName?: string;
+        pickupCoords?: Position;
+        destName?: string;
+        destCoords?: Position;
+    }) => void,
+    onPartialConfirmToggle?: () => void,
 }
 
 export default function SearchLocation({
@@ -50,6 +57,8 @@ export default function SearchLocation({
     setDestCoords,
     userLocation,
     userId,
+    onConfirmLocations,
+    onPartialConfirmToggle,
 }: SearchLocationProps) {
     const windowWidth = Dimensions.get('window').width;
     const colorScheme = useColorScheme();
@@ -114,6 +123,9 @@ export default function SearchLocation({
     }, [activeQuery, userLocation]);
 
     function handleSelect(name: string, full_address: string, coords: Position) {
+        const nextPickupName = toggle ? pickupInput : name;
+        const nextDestName = toggle ? name : destInput;
+
         if (toggle) {
             setDestInput(name);
             setDestCoords(coords);
@@ -122,7 +134,24 @@ export default function SearchLocation({
             setPickupCoords(coords);
         }
         setResults([]);
-        snapToIndex(0);
+
+        const hasPickup = !!nextPickupName;
+        const hasDest = !!nextDestName;
+
+        if (hasPickup && hasDest && onConfirmLocations) {
+            onConfirmLocations(
+                toggle
+                    ? { destName: name, destCoords: coords }
+                    : { pickupName: name, pickupCoords: coords }
+            );
+            return;
+        }
+
+        if (onPartialConfirmToggle) {
+            onPartialConfirmToggle();
+        }
+
+        snapToIndex(1);
     }
 
     function isFavourite(entry: SearchHistoryEntry): boolean {
@@ -154,7 +183,7 @@ export default function SearchLocation({
         <BottomSheetScrollView
             style={{
                 flex: 1,
-                marginBottom: 100,
+                marginBottom: 20,
                 backgroundColor: Colors[colorScheme ?? "light"].bgDark,
                 opacity: opacity,
             }}
@@ -399,11 +428,11 @@ export default function SearchLocation({
 
             {!searching && showHistory && (
                 <>
-                    <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
+                    {/* <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
                         <Text style={{ ...defaultStyles.subtitle, fontSize: 12 }}>
                             {toggle ? "Recent destinations" : "Recent pickups"}
                         </Text>
-                    </View>
+                    </View> */}
                     {activeHistory.map((item, idx) => {
                         const fav = isFavourite(item);
                         return (

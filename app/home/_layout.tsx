@@ -6,30 +6,41 @@ export default function HomeStackLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <Drawer screenOptions={{
-      headerShown: false,
-      drawerActiveTintColor: Colors[colorScheme ?? "light"].primary,
-      drawerLabelStyle: {
-        color: Colors[colorScheme ?? "light"].text,
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: 14,
-        textAlign: "center",
-      },
-      drawerStyle: {
-        backgroundColor: Colors[colorScheme ?? "light"].bg,
-        width: "50%",
-      },
-      drawerType: "front"
-    }} >
-        <Drawer.Screen name="map" options={{
-          drawerLabel: 'ride',
-        }}/>
-        <Drawer.Screen name="ride-history" options={{
-          drawerLabel: 'Ride history',
-        }}/>
-        <Drawer.Screen name="settings" options={{
-          drawerLabel: 'Settings',
-        }}/>
+    <Drawer
+      screenOptions={{
+        headerShown: false,
+        drawerActiveTintColor: Colors[colorScheme ?? "light"].primary,
+        drawerLabelStyle: {
+          color: Colors[colorScheme ?? "light"].text,
+          fontFamily: "Outfit_600SemiBold",
+          fontSize: 14,
+          textAlign: "center",
+        },
+        drawerStyle: {
+          backgroundColor: Colors[colorScheme ?? "light"].bg,
+          width: "50%",
+        },
+        drawerType: "front",
+      }}
+    >
+      <Drawer.Screen
+        name="map"
+        options={{
+          drawerLabel: "Ride",
+        }}
+      />
+      <Drawer.Screen
+        name="ride-history"
+        options={{
+          drawerLabel: "History",
+        }}
+      />
+      <Drawer.Screen
+        name="settings"
+        options={{
+          drawerLabel: "Settings",
+        }}
+      />
     </Drawer>
   );
 }

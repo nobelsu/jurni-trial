@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faAngleRight } from '@fortawesome/free-solid-svg-icons/faAngleRight'
 import RideComponent from "./Ride";
 import { RideTypeId } from "../lib/cost";
+import { Position } from "../lib/mapbox";
 
 interface ChooseRideProps {
     selectedId: RideTypeId,
@@ -17,9 +18,11 @@ interface ChooseRideProps {
     distance: number,
     duration: number,
     silentOnly: boolean,
+    pickupCoords: Position,
+    setPickupInput: React.Dispatch<React.SetStateAction<string>>,
 }
 
-export default function ChooseRide({selectedId, nextRef, setPhase, mapRef, distance, duration, silentOnly} : ChooseRideProps) {
+export default function ChooseRide({selectedId, nextRef, setPhase, mapRef, distance, duration, silentOnly, pickupCoords, setPickupInput} : ChooseRideProps) {
     const { animatedPosition, animatedIndex, snapToIndex, forceClose } = useBottomSheet();
     const opacity = useSharedValue(1);
 
@@ -54,7 +57,7 @@ export default function ChooseRide({selectedId, nextRef, setPhase, mapRef, dista
             }}>
                 <View style={{width: "100%", paddingHorizontal: 20, justifyContent: "center", alignItems: "center"}}>
                     <Text style={{...defaultStyles.title, marginBottom: 8,}}>Your <Text style={{color: Colors[colorScheme ?? "light"].primary }}>ride</Text></Text>
-                    <RideComponent id={selectedId} selected={selectedId} nextRef={nextRef} setPhase={setPhase} mapRef={mapRef} distance={distance} duration={duration}/>
+                    <RideComponent id={selectedId} selected={selectedId} nextRef={nextRef} setPhase={setPhase} mapRef={mapRef} distance={distance} duration={duration} pickupCoords={pickupCoords} setPickupInput={setPickupInput}/>
                 </View>
             </View>             
         </Animated.View>

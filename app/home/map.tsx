@@ -19,7 +19,7 @@ import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons/faLocati
 import BottomSheet from '@gorhom/bottom-sheet';
 import SetLocation from '../../components/SetLocation';
 import SearchLocation from '../../components/SearchLocation';
-import { MAPBOX_ACCESS_TOKEN, obtainWalkingDirections, Position, getPlaceLabelForCoords } from '../../lib/mapbox';
+import { MAPBOX_ACCESS_TOKEN, obtainWalkingDirections, Position, getPlaceLabelForCoords, obtainDirections, DrivingDirectionsResult } from '../../lib/mapbox';
 import CrosshairOverlay from '../../components/Crosshair';
 import Route from '../../components/Route';
 import ConfirmRide from '../../components/ChooseRide';
@@ -28,6 +28,7 @@ import RouteEndpointPin from '../../components/RouteEndpointPin';
 import { faAngleRight } from '@fortawesome/free-solid-svg-icons/faAngleRight';
 import ConfirmPickup from '../../components/ConfirmPickup';
 import RouteWalking from '../../components/RouteWalking';
+import Toast from '../../components/Toast';
 import { getAuth } from '@react-native-firebase/auth';
 import { calculateRideCostByType, RideTypeId } from '../../lib/cost';
 import { getSilentOnlyDefault } from '../../lib/users';
@@ -53,11 +54,10 @@ export default function MapScreen() {
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [result, setResult] = useState<any>(null);
-    const [loaded, setLoaded] = useState<Boolean>(false);
     const camera = useRef<Camera>(null);
     const [ne, setNe] = useState<Position>();
     const [sw, setSw] = useState<Position>();
+    const [updated, setUpdated] = useState<boolean>(false);
 
     const [pickupInput, setPickupInput] = useState<string>("");
     const [destInput, setDestInput] = useState<string>("");
@@ -91,6 +91,8 @@ export default function MapScreen() {
     const [followUser, setFollowUser] = useState<boolean>(false)
     const [silentOnly, setSilentOnly] = useState<boolean>(false);
     const [styleLoaded, setStyleLoaded] = useState<boolean>(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [showToast, setShowToast] = useState<boolean>(false);
 
     const auth = getAuth();
     const user = auth.currentUser;
@@ -150,8 +152,30 @@ export default function MapScreen() {
             setErrorMsg('Permission to access location was denied');
             return;
         }
-        let location = await Location.getCurrentPositionAsync({});
-        setLocation(location);
+        let currentLocation = await Location.getCurrentPositionAsync({});
+        setLocation(currentLocation);
+
+        const coords: Position = [
+            currentLocation.coords.longitude,
+            currentLocation.coords.latitude,
+        ];
+
+        setUserLocation(coords);
+        setPickupCoords(coords);
+        await obtainAddressFromSearchbox(coords, false);
+
+        if (camera.current) {
+            camera.current.setCamera({
+                centerCoordinate: coords,
+                zoomLevel: 16,
+                padding: {
+                    paddingBottom: 260,
+                    paddingTop: 0,
+                    paddingLeft: 0,
+                    paddingRight: 0,
+                },
+            });
+        }
     }
 
     async function obtainAddressFromSearchbox(coords: Position, isDestination: boolean) {
@@ -161,8 +185,10 @@ export default function MapScreen() {
                 placeLabel?.name ||
                 placeLabel?.full_address ||
                 "";
-
-            if (!label) return;
+            
+            if (!label) {
+                return;
+            }
 
             if (isDestination) {
                 setDestInput(label);
@@ -204,6 +230,111 @@ export default function MapScreen() {
     const map = useRef<MapView>(null);
     const crosshair = useRef<View>(null);
 
+    const handleNoDrivingRoute = useCallback(() => {
+        setCoordinates([]);
+        setWalkingCoordinates([]);
+        setDistance(0);
+        setDuration(0);
+        setPhase(0);
+        setToastMessage("No driving route is available between these locations. Try adjusting your pickup or destination.");
+        setShowToast(true);
+    }, []);
+
+    const handleConfirmLocations = useCallback(async (override?: {
+        pickupName?: string;
+        pickupCoords?: Position;
+        destName?: string;
+        destCoords?: Position;
+    }) => {
+        const effectivePickupName = override?.pickupName ?? pickupInput;
+        const effectiveDestName = override?.destName ?? destInput;
+        const effectivePickupCoords = override?.pickupCoords ?? pickupCoords;
+        const effectiveDestCoords = override?.destCoords ?? destCoords;
+
+        if (!effectivePickupName || !effectiveDestName) {
+            return;
+        }
+        try {
+            const data: DrivingDirectionsResult = await obtainDirections(effectivePickupCoords, effectiveDestCoords);
+            if (data.kind === "no_route") {
+                handleNoDrivingRoute();
+                return;
+            }
+
+            const line = require('@turf/turf').lineString(data.coordinates);
+            const curved = require('@turf/turf').bezierSpline(line, { resolution: 10000 });
+
+            setCoordinates(curved.geometry.coordinates as Position[]);
+
+            const firstPoint = curved.geometry.coordinates[0] as Position;
+            setPickupCoords(firstPoint);
+            await obtainAddressFromSearchbox(firstPoint, false);
+
+            const walking = await obtainWalkingDirections(firstPoint, userLocation);
+            setWalkingCoordinates(walking);
+
+            const bbox = require('../../lib/shared-util').computeBBox(data.coordinates);
+            setSw([bbox.minLat, bbox.minLng]);
+            setNe([bbox.maxLat, bbox.maxLng]);
+            setUpdated(true);
+            setDistance(data.distance);
+            setDuration(data.duration);
+            camera.current?.fitBounds(
+                [bbox.maxLat, bbox.maxLng],
+                [bbox.minLat, bbox.minLng],
+                [70, 70, 120, 70],
+                800
+            );
+
+            setPhase(1);
+            // bottomSheetRef.current?.forceClose();
+            // console.log("hit?")
+            // bottomSheetRef1.current?.snapToIndex(0);
+            // console.log(bottomSheetRef1.current)
+        } catch(err: any) {
+            handleNoDrivingRoute();
+        }
+    }, [
+        pickupInput,
+        destInput,
+        pickupCoords,
+        destCoords,
+        userLocation,
+        handleNoDrivingRoute,
+        obtainWalkingDirections,
+    ]);
+
+    const handlePartialConfirmToggle = useCallback(() => {
+        if (pickupInput && !inputToggle) {
+            setInputToggle(true);
+        } else if (destInput && inputToggle) {
+            setInputToggle(false);
+        }
+    }, [pickupInput, destInput, inputToggle]);
+
+    useFocusEffect(
+        useCallback(() => {
+            getCurrentLocation();
+            setUpdated(false);
+            setPhase(0);
+            setDestInput("");
+            setDestCoords([-1, -1]);
+            setInputToggle(true);
+            setSelected("basic");
+            setDistance(0);
+            setDuration(0);
+            setNe(undefined);
+            setSw(undefined);
+            setWalkingCoordinates([]);
+            setFollowUser(false);
+            setMoving(false);
+            setSilentOnly(false);
+            // bottomSheetRef.current?.snapToIndex(0);
+            // bottomSheetRef1.current?.forceClose();
+            // bottomSheetRef2.current?.forceClose();
+        }, [])
+    );
+
     useEffect(() => {
         if (user == null) {
             router.navigate("/login");
@@ -224,18 +355,6 @@ export default function MapScreen() {
     }, []);
 
     useEffect(() => {
-        async function setPickupDefault() {
-            if (loaded) {
-                setPickupCoords([result.coords.longitude, result.coords.latitude]);
-                setUserLocation([result.coords.longitude, result.coords.latitude])
-                await obtainAddressFromSearchbox([result.coords.longitude, result.coords.latitude] as Position, false)
-            }
-        }
-        setPickupDefault()
-    },
-    [loaded]) 
-
-    useEffect(() => {
         if (!pickupInput) {
             setData(pickupData)
         } else if (!destInput) {
@@ -246,51 +365,28 @@ export default function MapScreen() {
     }, [destInput, pickupInput])
 
     useEffect(() => {
-        if (location && !result) {
-            setResult(JSON.parse(JSON.stringify(location)));
-            setLoaded(true);
-        }
-    }, [location]) 
-
-    useEffect(() => {
         if (phase == 0 || phase == 2) {
             setShowCrosshair(true);
-            setCoordinates([]);
+        } else {
+            setShowCrosshair(false);
         }
-        else setShowCrosshair(false);
+    }, [phase]);
 
-    }, [phase])
-
-    useFocusEffect(
-        useCallback(() => {
-            setPhase(0);
-            setDestInput("");
-            setPickupCoords(userLocation);
-            setDestCoords([-1, -1]);
-            setInputToggle(true);
-            setSelected("basic");
-            setDistance(0);
-            setDuration(0);
-            setNe(undefined);
-            setSw(undefined);
-            setWalkingCoordinates([]);
-            setFollowUser(false);
-            setMoving(false);
-            setSilentOnly(false);
+    useEffect(() => {
+        if (phase === 1) {
+            bottomSheetRef.current?.close();
+            bottomSheetRef2.current?.close();
+            bottomSheetRef1.current?.snapToIndex(0);
+        } else if (phase === 2) {
+            bottomSheetRef.current?.close();
+            bottomSheetRef1.current?.close();
+            bottomSheetRef2.current?.snapToIndex(0);
+        } else if (phase === 0) {
+            bottomSheetRef1.current?.close();
+            bottomSheetRef2.current?.close();
             bottomSheetRef.current?.snapToIndex(0);
-            bottomSheetRef1.current?.snapToIndex(-1);
-            bottomSheetRef2.current?.snapToIndex(-1);
-            if (userLocation[0] !== -1) {
-                camera.current?.setCamera({
-                    centerCoordinate: userLocation,
-                    zoomLevel: 16,
-                    padding: { paddingBottom: 260, paddingTop: 0, paddingLeft: 0, paddingRight: 0 },
-                    animationDuration: 500,
-                });
-                obtainAddressFromSearchbox(userLocation, false);
-            }
-        }, [userLocation])
-    );
+        }
+    }, [phase]);
 
     return (
         <GestureHandlerRootView style={{flex: 1,}}>
@@ -309,6 +405,14 @@ export default function MapScreen() {
                 <FontAwesomeIcon icon={faBars} size={20} color={Colors[colorScheme ?? "light"].text}/>
             </TouchableOpacity>
             {showCrosshair && <CrosshairOverlay ref={crosshair} moving={moving} />}
+            <Toast
+                message={toastMessage}
+                visible={showToast}
+                onDismiss={() => {
+                    setShowToast(false);
+                    setToastMessage(null);
+                }}
+            />
             {(!followUser && (phase == 0)) && 
                 <TouchableOpacity style={{height: 36, width: 36, backgroundColor: Colors[colorScheme??"light"].bgDark, position: "absolute", right: 20, bottom: 280, zIndex: 1000, borderRadius: 18, justifyContent: "center", alignItems: "center"}} onPress={() => {
                     setFollowUser(true)
@@ -316,7 +420,7 @@ export default function MapScreen() {
                     <FontAwesomeIcon icon={faLocationCrosshairs} size={18} color={Colors[colorScheme ?? "light"].text}/>
                 </TouchableOpacity>
             }
-            {(loaded && location) ? 
+            {(location) ? 
             <MapView
                 ref={map}
                 styleURL={colorScheme == "light" ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11'}
@@ -366,22 +470,26 @@ export default function MapScreen() {
                         <MarkerView
                             id="driving-route-start"
                             coordinate={coordinates[0]}
+                            allowOverlapWithPuck={true}
+                            allowOverlap={true}
                         >
                             <RouteEndpointPin type="start" />
                         </MarkerView>
                         <MarkerView
                             id="driving-route-end"
                             coordinate={coordinates[coordinates.length - 1]}
+                            allowOverlapWithPuck={true}
+                            allowOverlap={true}
                         >
                             <RouteEndpointPin type="end" />
                         </MarkerView>
                     </>
                 )}
                 {(phase == 2 && styleLoaded) && <RouteWalking key={colorScheme} coordinates={walkingCoordinates} />}
-                <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.8}/>
+                <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.7}/>
                 <Camera 
                     defaultSettings={{
-                        centerCoordinate: [location?.coords.latitude, location?.coords.longitude] as Position, 
+                        centerCoordinate: [location?.coords.longitude, location?.coords.latitude] as Position, 
                         zoomLevel: 16,
                         // padding: {paddingBottom: 260, paddingTop: 0, paddingLeft: 0, paddingRight: 0,},
                         // animationDuration: 1,
@@ -389,7 +497,7 @@ export default function MapScreen() {
                     }}
                     centerCoordinate={[location?.coords.longitude, location?.coords.latitude] as Position}
                     // animationDuration={0}
-                    // zoomLevel={16} 
+                    zoomLevel={16} 
                     followZoomLevel={16} 
                     followUserLocation={followUser} 
                     
@@ -487,6 +595,10 @@ export default function MapScreen() {
                     userLocation={userLocation}
                     setDistance={setDistance}
                     setDuration={setDuration}
+                    setUpdated={setUpdated}
+                    onNoDrivingRoute={handleNoDrivingRoute}
+                    onConfirmLocations={handleConfirmLocations}
+                    onPartialConfirmToggle={handlePartialConfirmToggle}
                 />
                 <SearchLocation
                     destRef={destRef}
@@ -501,6 +613,8 @@ export default function MapScreen() {
                     setDestCoords={setDestCoords}
                     userLocation={userLocation}
                     userId={user?.uid}
+                    onConfirmLocations={handleConfirmLocations}
+                    onPartialConfirmToggle={handlePartialConfirmToggle}
                 />
             </BottomSheet>
             <BottomSheet 
@@ -516,9 +630,10 @@ export default function MapScreen() {
                 containerStyle={{zIndex: 10000}}
                 onChange={(position) => {
                     if (!ne || !sw) return
-                    // console.log(ne, sw)
                     // camera.current?.fitBounds(ne, sw)
-                    camera.current?.fitBounds(ne, sw, [70, 70, snapPoints1List[position], 70], 800)
+                    if ((position == 0 || position == 1) && updated) {
+                        camera.current?.fitBounds(ne, sw, [70, 70, snapPoints1List[position], 70], 800)
+                    }
                     // camera.current?.setCamera({padding: {paddingBottom: snapPoints1List[(position+1)%2], paddingLeft: 70, paddingRight: 70, paddingTop: 70,}})
                 }}
                 footerComponent={(props) => {
@@ -536,18 +651,16 @@ export default function MapScreen() {
                             <View style={{height: 50, marginHorizontal: 20, flexDirection: "row", marginBottom: 24, gap: 8,}}>
                                 <TouchableOpacity 
                                     onPress={() => {
-                                        setPhase(0)
-                                        bottomSheetRef1.current?.forceClose()
-                                        bottomSheetRef.current?.snapToIndex(0)
+                                        setUpdated(false);
+                                        setPhase(0);
                                     }}
                                     style={{width: 50, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
                                     <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].bg}/>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
-                                    onPress={() => {
-                                        setPhase(2)
-                                        bottomSheetRef1.current?.forceClose()
-                                        bottomSheetRef2.current?.snapToIndex(0)
+                                    onPress={async () => {
+                                        await reverseGeocodePickupForConfirm(pickupCoords);
+                                        setPhase(2);
                                     }}
                                 style={{flex: 1, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
                                 <Text style={{fontSize: 18, fontWeight: 500, color: Colors[colorScheme ?? "light"].bg}}>Choose {rideTypeMetadata[selected]?.name}</Text>
@@ -565,6 +678,8 @@ export default function MapScreen() {
                     distance={distance}
                     duration={duration}
                     silentOnly={silentOnly}
+                    pickupCoords={pickupCoords}
+                    setPickupInput={setPickupInput}
                 />
                 <SelectRide
                     selectedId={selected}
@@ -576,6 +691,8 @@ export default function MapScreen() {
                     duration={duration}
                     silentOnly={silentOnly}
                     setSilentOnly={setSilentOnly}
+                    pickupCoords={pickupCoords}
+                    setPickupInput={setPickupInput}
                 />
             </BottomSheet>
             <BottomSheet 

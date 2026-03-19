@@ -5,8 +5,21 @@ export type Position = [number, number]
 export const MAPBOX_ACCESS_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
 export const  MAP_SIZE = 240;
 
-export async function obtainDirections(pickupCoords: Position, destCoords: Position) {
-    if (!pickupCoords || !destCoords) throw new Error("Coordinates invalid!")
+export type DrivingDirectionsResult =
+    | {
+        kind: "ok";
+        coordinates: Position[];
+        distance: number;
+        duration: number;
+      }
+    | {
+        kind: "no_route";
+      };
+
+export async function obtainDirections(pickupCoords: Position, destCoords: Position): Promise<DrivingDirectionsResult> {
+    if (!pickupCoords || !destCoords) {
+        throw new Error("Coordinates invalid!");
+    }
 
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoords[0]},${pickupCoords[1]};${destCoords[0]},${destCoords[1]}`
     const res = await axios.get(url, {
@@ -18,10 +31,24 @@ export async function obtainDirections(pickupCoords: Position, destCoords: Posit
             steps: true
         }
     })
+
+    const routes = Array.isArray(res.data?.routes) ? res.data.routes : [];
+    const first = routes[0];
+
+    if (
+        !first ||
+        !first.geometry ||
+        !Array.isArray(first.geometry.coordinates) ||
+        first.geometry.coordinates.length === 0
+    ) {
+        return { kind: "no_route" };
+    }
+
     return {
-        coordinates: res.data.routes[0].geometry.coordinates,
-        distance: res.data.routes[0].distance/1000,
-        duration: res.data.routes[0].duration/60
+        kind: "ok",
+        coordinates: first.geometry.coordinates as Position[],
+        distance: typeof first.distance === "number" ? first.distance / 1000 : 0,
+        duration: typeof first.duration === "number" ? first.duration / 60 : 0,
     }
 }
 

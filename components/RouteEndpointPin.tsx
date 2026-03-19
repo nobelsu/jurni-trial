@@ -24,24 +24,24 @@ export default function RouteEndpointPin({ type }: RouteEndpointPinProps) {
     >
       <View
         style={{
-          width: 24,
-          height: 24,
-          borderRadius: isStart ? 6 : 12,
-          backgroundColor: isStart ? theme.success ?? theme.primary : theme.bgDark,
+          width: 12,
+          height: 12,
+          borderRadius: isStart ? 2 : 6,
+          backgroundColor: theme.primary,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <View
+        {/* <View
           style={{
-            width: isStart ? 18 : 18,
-            height: isStart ? 18 : 18,
-            borderRadius: isStart ? 4 : 9,
-            backgroundColor: isStart ? theme.bg : theme.primary,
+            width: isStart ? 12 : 12,
+            height: isStart ? 12 : 12,
+            // borderRadius: isStart ? 4 : 9,
+            // backgroundColor: isStart ? theme.bg : theme.primary,
             alignItems: "center",
             justifyContent: "center",
             borderWidth: isStart ? 2 : 2,
-            borderColor: isStart ? (theme.success ?? theme.primary) : theme.bg,
+            borderColor: isStart ? theme.primary : theme.bg,
           }}
         >
           <View
@@ -49,10 +49,10 @@ export default function RouteEndpointPin({ type }: RouteEndpointPinProps) {
               width: isStart ? 8 : 3,
               height: isStart ? 8 : 10,
               borderRadius: isStart ? 2 : 999,
-              backgroundColor: isStart ? (theme.success ?? theme.primary) : theme.bg,
+              backgroundColor: isStart ? theme.primary : theme.bg,
             }}
           />
-        </View>
+        </View> */}
       </View>
     </View>
   );
