@@ -8,6 +8,7 @@ export default function SettingsLayout() {
       <Stack.Screen name="account" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="accessibility" />
+      <Stack.Screen name="verification" />
     </Stack>
   );
 }

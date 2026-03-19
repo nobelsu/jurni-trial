@@ -50,6 +50,7 @@ export default function ConfirmPasswordScreen() {
             };
 
             await firestore().collection("users").doc(user.uid).set({
+                verified: false,
                 metadata: {
                     favourites: [],
                     pickup_history: [],

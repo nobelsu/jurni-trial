@@ -24,6 +24,7 @@ import {
   getFavourites,
   toggleFavourite,
   getUserProfileMeta,
+  getUserVerificationStatus,
   updateUserSettings,
   setUserProfileName,
   type UserSettings,
@@ -53,6 +54,8 @@ export default function SettingsHomeScreen() {
   const [loadingFavourites, setLoadingFavourites] = useState(true);
   const [displayName, setDisplayName] = useState<string>("");
   const [savingName, setSavingName] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [loadingVerification, setLoadingVerification] = useState(true);
   const [showDrawerUnsavedModal, setShowDrawerUnsavedModal] = useState(false);
   const [savingDrawer, setSavingDrawer] = useState(false);
 
@@ -65,10 +68,11 @@ export default function SettingsHomeScreen() {
       getUserSettings(user.uid),
       getUserProfileMeta(user.uid),
       getFavourites(user.uid),
+      getUserVerificationStatus(user.uid),
     ])
       .then((results) => {
         if (cancelled) return;
-        const [settingsResult, metaResult, favsResult] = results;
+        const [settingsResult, metaResult, favsResult, verificationResult] = results;
 
         if (settingsResult.status === "fulfilled") {
           setSettings(settingsResult.value);
@@ -80,11 +84,17 @@ export default function SettingsHomeScreen() {
         if (favsResult.status === "fulfilled") {
           setFavourites(favsResult.value);
         }
+        if (verificationResult.status === "fulfilled") {
+          setVerified(verificationResult.value);
+        } else {
+          setVerified(false);
+        }
       })
       .finally(() => {
         if (cancelled) return;
         setLoadingQuick(false);
         setLoadingFavourites(false);
+        setLoadingVerification(false);
       });
 
     return () => {
@@ -194,6 +204,13 @@ export default function SettingsHomeScreen() {
   });
 
   const primaryItems = [
+    {
+      title: "Identity verification",
+      description: verified
+        ? "Verified account"
+        : "Verify your identity to complete bookings",
+      route: "/home/settings/verification",
+    },
     {
       title: "Account & profile",
       description: "Name, email, password, account controls",
@@ -428,6 +445,55 @@ export default function SettingsHomeScreen() {
                       </Text>
                     </View>
                   </View>
+
+                  <TouchableOpacity
+                    onPress={() => router.push("/home/settings/verification")}
+                    style={{
+                      marginTop: 4,
+                      borderRadius: 12,
+                      backgroundColor: colors.bgDark,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <View style={{ flex: 1, paddingRight: 12 }}>
+                      <Text
+                        style={{
+                          fontFamily: "Outfit_500Medium",
+                          fontSize: 13,
+                          color: colors.text,
+                        }}
+                      >
+                        Identity verification
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: "Outfit_400Regular",
+                          fontSize: 12,
+                          color: colors.textMuted,
+                          marginTop: 2,
+                        }}
+                      >
+                        {loadingVerification
+                          ? "Checking verification status..."
+                          : verified
+                          ? "Verified"
+                          : "Not verified"}
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 18,
+                        color: colors.textMuted,
+                      }}
+                    >
+                      ›
+                    </Text>
+                  </TouchableOpacity>
 
                   {hasUnsavedChanges && (
                     <View style={{ height: 8 }} />

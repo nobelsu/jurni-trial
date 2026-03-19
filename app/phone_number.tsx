@@ -67,10 +67,10 @@ export default function PhoneNumberScreen() {
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We'll check if you have an account or help you create one</Text>
                             <View style={{flexDirection: "row", marginTop: 20, gap: 4, height: 60}}>
                                 <View style={{flex: 1, justifyContent: "center", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg}}>
-                                    <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8, paddingHorizontal: 20}}>
-                                        <View>
+                                    <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8, paddingHorizontal: 8}}>
+                                        {/* <View>
                                             <FontAwesomeIcon icon={faPhone} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
-                                        </View>
+                                        </View> */}
                                         <View style={{flex: 1}}>
                                             <PhoneInput
                                                 defaultCountry="GB"
@@ -90,7 +90,8 @@ export default function PhoneNumberScreen() {
                                                         backgroundColor: Colors[colorScheme ?? "light"].bg,
                                                     },
                                                     divider: {
-                                                        backgroundColor: Colors[colorScheme ?? "light"].border ?? Colors[colorScheme ?? "light"].textMuted,
+                                                        width: 0,
+                                                        // backgroundColor: Colors[colorScheme ?? "light"].border ?? Colors[colorScheme ?? "light"].textMuted,
                                                     },
                                                     callingCode: {
                                                         color: Colors[colorScheme ?? "light"].textMuted,

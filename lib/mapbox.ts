@@ -1,4 +1,10 @@
 import axios from "axios"
+import {
+    getCachedReverseGeocode,
+    getCachedSearchResults,
+    setCachedReverseGeocode,
+    setCachedSearchResults,
+} from "./searchCache";
 
 export type Position = [number, number]
 
@@ -64,9 +70,23 @@ export interface PlaceLabel {
     full_address: string;
 }
 
+let currentSearchboxSessionToken = "";
+
+function getSearchboxSessionToken(): string {
+    if (!currentSearchboxSessionToken) {
+        currentSearchboxSessionToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+    return currentSearchboxSessionToken;
+}
+
 export async function searchPlaces(query: string, proximity?: Position): Promise<SearchResult[]> {
     if (!query.trim()) return [];
-    const sessionToken = Math.random().toString(36).slice(2);
+    const cached = await getCachedSearchResults(query, proximity);
+    if (cached) {
+        return cached;
+    }
+
+    const sessionToken = getSearchboxSessionToken();
     const suggestUrl = "https://api.mapbox.com/search/searchbox/v1/suggest";
     const res = await axios.get(suggestUrl, {
         params: {
@@ -128,7 +148,9 @@ export async function searchPlaces(query: string, proximity?: Position): Promise
         })
     );
 
-    return detailedResults.filter((r): r is SearchResult => r !== null);
+    const filtered = detailedResults.filter((r): r is SearchResult => r !== null);
+    await setCachedSearchResults(query, proximity, filtered);
+    return filtered;
 }
 
 export async function getPlaceLabelForCoords(coords: Position): Promise<PlaceLabel | null> {
@@ -137,6 +159,11 @@ export async function getPlaceLabelForCoords(coords: Position): Promise<PlaceLab
     }
 
     try {
+        const cached = await getCachedReverseGeocode(coords);
+        if (cached) {
+            return cached;
+        }
+
         const url = "https://api.mapbox.com/search/searchbox/v1/reverse";
         const res = await axios.get(url, {
             params: {
@@ -193,7 +220,9 @@ export async function getPlaceLabelForCoords(coords: Position): Promise<PlaceLab
             return null;
         }
 
-        return { name: name || full_address, full_address: full_address || name };
+        const label = { name: name || full_address, full_address: full_address || name };
+        await setCachedReverseGeocode(coords, label);
+        return label;
     } catch (e) {
         console.log("Failed to fetch Searchbox place label for coords", e);
         return null;

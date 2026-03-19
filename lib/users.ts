@@ -25,6 +25,7 @@ export type UserSettings = {
 };
 
 type UserDoc = {
+  verified?: boolean;
   recent_searches?: SearchHistoryEntry[];
   metadata?: {
     name?: string;
@@ -210,6 +211,21 @@ export async function getSilentOnlyDefault(uid: string): Promise<boolean> {
   const data = await getUserDoc(uid);
   if (!data) return false;
   return !!data.settings?.silent_only;
+}
+
+export async function getUserVerificationStatus(uid: string): Promise<boolean> {
+  const data = await getUserDoc(uid);
+  if (!data) return false;
+  return data.verified === true;
+}
+
+export async function markUserVerified(uid: string): Promise<void> {
+  await firestore().collection("users").doc(uid).set(
+    {
+      verified: true,
+    },
+    { merge: true }
+  );
 }
 
 function normalizeUserSettings(

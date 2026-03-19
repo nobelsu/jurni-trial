@@ -14,6 +14,7 @@ import { faStar as faStarRegular } from "@fortawesome/free-regular-svg-icons/faS
 import { useAnimatedReaction, useSharedValue, withTiming } from "react-native-reanimated";
 import { useEffect, useRef, useState } from "react";
 import { searchPlaces, SearchResult, Position } from "../lib/mapbox";
+import { warmReverseGeocodeCacheFromHistory, warmSearchCacheFromHistory } from "../lib/searchCache";
 import {
   getPickupHistory,
   getDestinationHistory,
@@ -92,9 +93,33 @@ export default function SearchLocation({
 
     useEffect(() => {
         if (!userId) return;
-        getPickupHistory(userId).then(setPickupHistory).catch(() => {});
-        getDestinationHistory(userId).then(setDestinationHistory).catch(() => {});
-        getFavourites(userId).then(setFavourites).catch(() => {});
+        getPickupHistory(userId)
+            .then(async (entries) => {
+                setPickupHistory(entries);
+                await Promise.all([
+                    warmReverseGeocodeCacheFromHistory(entries),
+                    warmSearchCacheFromHistory(entries, userLocation[0] !== -1 ? userLocation : undefined),
+                ]);
+            })
+            .catch(() => {});
+        getDestinationHistory(userId)
+            .then(async (entries) => {
+                setDestinationHistory(entries);
+                await Promise.all([
+                    warmReverseGeocodeCacheFromHistory(entries),
+                    warmSearchCacheFromHistory(entries, userLocation[0] !== -1 ? userLocation : undefined),
+                ]);
+            })
+            .catch(() => {});
+        getFavourites(userId)
+            .then(async (entries) => {
+                setFavourites(entries);
+                await Promise.all([
+                    warmReverseGeocodeCacheFromHistory(entries),
+                    warmSearchCacheFromHistory(entries, userLocation[0] !== -1 ? userLocation : undefined),
+                ]);
+            })
+            .catch(() => {});
     }, [userId]);
 
     const activeQuery = toggle ? destInput : pickupInput;

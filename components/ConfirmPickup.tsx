@@ -6,12 +6,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons/faMagnifyingGlass";
 import { faAngleLeft } from "@fortawesome/free-solid-svg-icons/faAngleLeft";
 import firestore from "@react-native-firebase/firestore";
-import axios from "axios";
 import { RideTypeId } from "../lib/cost";
 import { useState } from "react";
 import type { Position } from "../lib/mapbox";
-import { MAPBOX_ACCESS_TOKEN } from "../lib/mapbox";
 import { addToPickupHistory, addToDestinationHistory, SearchHistoryEntry } from "../lib/users";
+import { reverseGeocodeWithCache } from "../lib/searchCache";
+import { useRouter } from "expo-router";
 
 interface ConfirmPickupProps {
     pickupInput: string,
@@ -26,6 +26,8 @@ interface ConfirmPickupProps {
     pickupCoords: Position,
     destCoords: Position,
     silentOnly: boolean,
+    verified: boolean,
+    processing: boolean,
 }
 
 const DUMMY_DRIVER_ID = "dummy_driver_1";
@@ -43,9 +45,12 @@ export default function ConfirmPickup({
     pickupCoords,
     destCoords,
     silentOnly,
+    verified,
+    processing,
 }: ConfirmPickupProps) {
 
     const { forceClose } = useBottomSheet();
+    const router = useRouter();
     const [paying, setPaying] = useState(false);
     const [payError, setPayError] = useState<string | null>(null);
 
@@ -56,6 +61,12 @@ export default function ConfirmPickup({
     async function handleConfirmAndPay() {
         if (!riderId) {
             setPayError("Please sign in to confirm and pay.");
+            return;
+        }
+        if (!verified) {
+            setPayError("Please verify your identity in settings before requesting a ride.");
+            forceClose();
+            router.push("/home/settings/verification");
             return;
         }
         setPayError(null);
@@ -77,24 +88,9 @@ export default function ConfirmPickup({
             let finalPickupLabel = pickupInput ?? "";
             if (hasPickupCoords) {
                 try {
-                    const url = "https://api.mapbox.com/search/geocode/v6/reverse";
-                    const res = await axios.get(url, {
-                        params: {
-                            access_token: MAPBOX_ACCESS_TOKEN,
-                            longitude: pickupCoords[0],
-                            latitude: pickupCoords[1],
-                        },
-                    });
-                    const feature = res.data?.features?.[0];
-                    const properties = feature?.properties ?? {};
-                    const preferredName: string =
-                        properties.name_preferred ??
-                        properties.name ??
-                        properties.place_formatted ??
-                        feature?.place_name ??
-                        "";
-                    if (preferredName) {
-                        finalPickupLabel = preferredName;
+                    const label = await reverseGeocodeWithCache(pickupCoords);
+                    if (label?.name) {
+                        finalPickupLabel = label.name;
                     }
                 } catch {
                     // Best-effort: ignore reverse geocode failure; fall back to existing pickupInput.
@@ -185,7 +181,7 @@ export default function ConfirmPickup({
                     marginTop: 15, 
                     paddingVertical: 10, 
                     backgroundColor: Colors[colorScheme ?? "light"].bg,
-                    opacity: moving ? 0.6 : 1,
+                    opacity: (moving || processing) ? 0.6 : 1,
                 }}
                 onPress={() => {
                     

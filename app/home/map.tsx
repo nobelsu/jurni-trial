@@ -9,7 +9,6 @@ import { Colors } from '../../constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Dimensions } from 'react-native';
 import { setAccessToken, MapView, Camera, Viewport, LocationPuck, OnMapSteadyEvent, CameraGestureObserver, MarkerView } from '@rnmapbox/maps';
-import axios from 'axios';
 
 import { pickupData, destinationData, rideTypeMetadata, } from '../../constants/MockData';
 
@@ -20,6 +19,7 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import SetLocation from '../../components/SetLocation';
 import SearchLocation from '../../components/SearchLocation';
 import { MAPBOX_ACCESS_TOKEN, obtainWalkingDirections, Position, getPlaceLabelForCoords, obtainDirections, DrivingDirectionsResult } from '../../lib/mapbox';
+import { reverseGeocodeWithCache } from '../../lib/searchCache';
 import CrosshairOverlay from '../../components/Crosshair';
 import Route from '../../components/Route';
 import ConfirmRide from '../../components/ChooseRide';
@@ -31,8 +31,9 @@ import RouteWalking from '../../components/RouteWalking';
 import Toast from '../../components/Toast';
 import { getAuth } from '@react-native-firebase/auth';
 import { calculateRideCostByType, RideTypeId } from '../../lib/cost';
-import { getSilentOnlyDefault } from '../../lib/users';
+import { getSilentOnlyDefault, getUserVerificationStatus } from '../../lib/users';
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
+import { faApple } from '@fortawesome/free-brands-svg-icons/faApple';
 
 export default function MapScreen() {
     setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -90,39 +91,16 @@ export default function MapScreen() {
 
     const [followUser, setFollowUser] = useState<boolean>(false)
     const [silentOnly, setSilentOnly] = useState<boolean>(false);
+    const [verified, setVerified] = useState<boolean>(false);
     const [styleLoaded, setStyleLoaded] = useState<boolean>(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [showToast, setShowToast] = useState<boolean>(false);
 
+    const [processing, setProcessing] = useState<boolean>(false);
+
     const auth = getAuth();
     const user = auth.currentUser;
 
-    // #region agent log
-    useEffect(() => {
-        fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Debug-Session-Id': '4e9209',
-            },
-            body: JSON.stringify({
-                sessionId: '4e9209',
-                runId: 'initial',
-                hypothesisId: 'H1',
-                location: 'app/home/map.tsx:76',
-                message: 'Map phase/route state change',
-                data: {
-                    phase,
-                    coordCount: coordinates.length,
-                    walkingCoordCount: walkingCoordinates.length,
-                },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => {});
-    }, [phase, coordinates.length, walkingCoordinates.length]);
-    // #endregion
-
-    // #region agent log
     useEffect(() => {
         fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
             method: 'POST',
@@ -179,6 +157,7 @@ export default function MapScreen() {
     }
 
     async function obtainAddressFromSearchbox(coords: Position, isDestination: boolean) {
+        setProcessing(true);
         try {
             const placeLabel = await getPlaceLabelForCoords(coords);
             const label =
@@ -198,33 +177,20 @@ export default function MapScreen() {
         } catch (err) {
             console.log("Searchbox reverse lookup failed", err);
         }
+        setProcessing(false);
     }
 
     async function reverseGeocodePickupForConfirm(coords: Position) {
+        setProcessing(true);
         try {
-            const url = "https://api.mapbox.com/search/geocode/v6/reverse";
-            const res = await axios.get(url, {
-                params: {
-                    access_token: MAPBOX_ACCESS_TOKEN,
-                    longitude: coords[0],
-                    latitude: coords[1],
-                }
-            });
-            const feature = res.data?.features?.[0];
-            const properties = feature?.properties ?? {};
-            const preferredName: string =
-                properties.name_preferred ??
-                properties.name ??
-                properties.place_formatted ??
-                feature?.place_name ??
-                "";
-
-            if (preferredName) {
-                setPickupInput(preferredName);
+            const label = await reverseGeocodeWithCache(coords);
+            if (label?.name) {
+                setPickupInput(label.name);
             }
         } catch (err) {
             console.log("Geocoding reverse lookup for confirm failed", err);
         }
+        setProcessing(false);
     }
 
     const map = useRef<MapView>(null);
@@ -262,7 +228,7 @@ export default function MapScreen() {
             }
 
             const line = require('@turf/turf').lineString(data.coordinates);
-            const curved = require('@turf/turf').bezierSpline(line, { resolution: 10000 });
+            const curved = require('@turf/turf').bezierSpline(line, { resolution: 5000 });
 
             setCoordinates(curved.geometry.coordinates as Position[]);
 
@@ -349,8 +315,16 @@ export default function MapScreen() {
                 .catch(() => {
                     // ignore preference load errors
                 });
+            getUserVerificationStatus(user.uid)
+                .then((isVerified) => {
+                    setVerified(isVerified);
+                })
+                .catch(() => {
+                    setVerified(false);
+                });
         } else {
             setSilentOnly(false);
+            setVerified(false);
         }
     }, []);
 
@@ -440,34 +414,14 @@ export default function MapScreen() {
                 attributionEnabled={false}
                 onDidFinishLoadingStyle={() => {
                     setStyleLoaded(true);
-
-                    // #region agent log
-                    fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Debug-Session-Id': '4e9209',
-                        },
-                        body: JSON.stringify({
-                            sessionId: '4e9209',
-                            runId: 'initial',
-                            hypothesisId: 'H5',
-                            location: 'app/home/map.tsx:311',
-                            message: 'Map style finished loading',
-                            data: {
-                                colorScheme,
-                            },
-                            timestamp: Date.now(),
-                        }),
-                    }).catch(() => {});
-                    // #endregion
                 }}
                 projection='mercator'
             >
                 {(phase == 1 && styleLoaded) && <Route key={colorScheme} coordinates={coordinates} />}
-                {(phase == 1 && coordinates.length > 1) && (
+                {(phase == 1 && coordinates.length > 1 && styleLoaded) && (
                     <>
                         <MarkerView
+                            key={`driving-route-start-${colorScheme}`}
                             id="driving-route-start"
                             coordinate={coordinates[0]}
                             allowOverlapWithPuck={true}
@@ -486,7 +440,7 @@ export default function MapScreen() {
                     </>
                 )}
                 {(phase == 2 && styleLoaded) && <RouteWalking key={colorScheme} coordinates={walkingCoordinates} />}
-                <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.7}/>
+                {(phase == 0) && <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.7}/>}
                 <Camera 
                     defaultSettings={{
                         centerCoordinate: [location?.coords.longitude, location?.coords.latitude] as Position, 
@@ -641,7 +595,13 @@ export default function MapScreen() {
                         <BottomSheetFooter {...props}>
                             <TouchableOpacity 
                                 style={{width: "100%", height: 50, paddingHorizontal: 20, flexDirection: "row", marginBottom: 5,}}>
-                                <View style={{flex: 1, justifyContent: "center"}}>
+                                <View style={{flex: 1, flexDirection: "row", alignItems: "center"}}>
+                                    <FontAwesomeIcon
+                                        icon={faApple}
+                                        size={18}
+                                        color={Colors[colorScheme ?? "light"].text}
+                                        style={{ marginLeft: 4, marginRight: 8,}}
+                                    />
                                     <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 16, fontWeight: 500,}}>Apple Pay</Text>
                                 </View>
                                 <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end"}}>
@@ -729,6 +689,8 @@ export default function MapScreen() {
                     pickupCoords={pickupCoords}
                     destCoords={destCoords}
                     silentOnly={silentOnly}
+                    verified={verified}
+                    processing={processing}
                 />
             </BottomSheet>
         </GestureHandlerRootView>
