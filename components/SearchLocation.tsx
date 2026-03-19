@@ -590,7 +590,7 @@ export default function SearchLocation({
             <Modal
                 visible={favouritesVisible}
                 transparent
-                animationType="slide"
+                animationType="fade"
                 onRequestClose={() => setFavouritesVisible(false)}
             >
                 <View

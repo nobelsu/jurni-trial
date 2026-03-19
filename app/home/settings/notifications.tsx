@@ -5,6 +5,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Switch,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "react-native";
@@ -12,7 +13,6 @@ import { useRouter, useNavigation } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import StyleDefault from "../../../constants/DefaultStyles";
 import BackBtn from "../../../components/BackButton";
-import Btn from "../../../components/CustomButton";
 import UnsavedChangesModal from "../../../components/settings/UnsavedChangesModal";
 import { useUnsavedChangesGuard } from "../../../components/settings/useUnsavedChangesGuard";
 import { getAuth } from "@react-native-firebase/auth";
@@ -21,6 +21,9 @@ import {
   updateUserSettings,
   type UserSettings,
 } from "../../../lib/users";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faBell } from "@fortawesome/free-solid-svg-icons/faBell";
+import { faTag } from "@fortawesome/free-solid-svg-icons/faTag";
 
 function notificationsDirty(
   draft: UserSettings | null,
@@ -39,6 +42,7 @@ export default function NotificationSettingsScreen() {
   const defaultStyles = StyleDefault({ colorScheme });
   const router = useRouter();
   const navigation = useNavigation();
+  const isDark = colorScheme === "dark";
 
   const auth = getAuth();
   const user = auth.currentUser;
@@ -113,24 +117,33 @@ export default function NotificationSettingsScreen() {
     setDraft({ ...draft, ...partial });
   }
 
+  const sectionLabel = {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: "uppercase" as const,
+    color: colors.textMuted,
+    marginBottom: 8,
+    marginLeft: 2,
+  };
+
+  const card = {
+    borderRadius: 20,
+    backgroundColor: colors.bg,
+    overflow: "hidden" as const,
+  };
+
   if (loading || !draft) {
     return (
       <SafeAreaView style={defaultStyles.container}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text
-            style={{
-              ...defaultStyles.subtitle,
-              marginTop: 12,
-              color: colors.text,
-            }}
-          >
+          <Text style={{
+            fontFamily: "Outfit_400Regular",
+            fontSize: 14,
+            color: colors.textMuted,
+            marginTop: 12,
+          }}>
             Loading notification settings...
           </Text>
         </View>
@@ -146,124 +159,177 @@ export default function NotificationSettingsScreen() {
         onDiscard={handleGuardDiscard}
         saving={guardSaving}
       />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
+
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
         <BackBtn onPress={() => router.back()} />
-        <Text
-          style={{
-            ...defaultStyles.title,
-            marginLeft: 12,
-          }}
-        >
+        <Text style={{ ...defaultStyles.title, marginLeft: 12 }}>
           Notifications
         </Text>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: isDirty ? 104 : 40 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Push notifications */}
         <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              ...defaultStyles.subtitle,
-              marginBottom: 8,
-              color: colors.textMuted,
-            }}
-          >
-            Push notifications
-          </Text>
-
-          <View
-            style={{
+          <Text style={sectionLabel}>Push notifications</Text>
+          <View style={card}>
+            {/* Ride updates */}
+            <View style={{
               flexDirection: "row",
               alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit_400Regular",
-                fontSize: 14,
-                color: colors.text,
-                flex: 1,
-              }}
-            >
-              Ride updates
-            </Text>
-            <Switch
-              value={draft.ride_updates_push !== false}
-              onValueChange={(value) =>
-                updateDraft({ ride_updates_push: value })
-              }
-              trackColor={{
-                false: colors.bg,
-                true: colors.primary,
-              }}
-              thumbColor={colors.bgDark}
-            />
-          </View>
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+            }}>
+              <View style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                backgroundColor: colors.bgDark,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 14,
+              }}>
+                <FontAwesomeIcon icon={faBell} size={16} color="#8b5cf6" />
+              </View>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{
+                  fontFamily: "Outfit_500Medium",
+                  fontSize: 15,
+                  color: colors.text,
+                }}>
+                  Ride updates
+                </Text>
+                <Text style={{
+                  fontFamily: "Outfit_400Regular",
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                }}>
+                  Driver arrivals and trip status changes
+                </Text>
+              </View>
+              <Switch
+                value={draft.ride_updates_push !== false}
+                onValueChange={(value) =>
+                  updateDraft({ ride_updates_push: value })
+                }
+                trackColor={{ false: colors.bgDark, true: colors.primary }}
+                thumbColor={isDark ? colors.textMuted : "#ffffff"}
+              />
+            </View>
 
-          <View
-            style={{
+            <View style={{ height: 1, backgroundColor: colors.bgDark }} />
+
+            {/* Promotions */}
+            <View style={{
               flexDirection: "row",
               alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit_400Regular",
-                fontSize: 14,
-                color: colors.text,
-                flex: 1,
-              }}
-            >
-              Promotions
-            </Text>
-            <Switch
-              value={!!draft.promotions_push}
-              onValueChange={(value) =>
-                updateDraft({ promotions_push: value })
-              }
-              trackColor={{
-                false: colors.bg,
-                true: colors.primary,
-              }}
-              thumbColor={colors.bgDark}
-            />
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+            }}>
+              <View style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                backgroundColor: colors.bgDark,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 14,
+              }}>
+                <FontAwesomeIcon icon={faTag} size={16} color="#f59e0b" />
+              </View>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{
+                  fontFamily: "Outfit_500Medium",
+                  fontSize: 15,
+                  color: colors.text,
+                }}>
+                  Promotions
+                </Text>
+                <Text style={{
+                  fontFamily: "Outfit_400Regular",
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                }}>
+                  Deals, discounts, and special offers
+                </Text>
+              </View>
+              <Switch
+                value={!!draft.promotions_push}
+                onValueChange={(value) =>
+                  updateDraft({ promotions_push: value })
+                }
+                trackColor={{ false: colors.bgDark, true: colors.primary }}
+                thumbColor={isDark ? colors.textMuted : "#ffffff"}
+              />
+            </View>
           </View>
         </View>
       </ScrollView>
+
+      {/* Save Bar */}
       {isDirty && (
-        <View
-          style={{
-            position: "absolute",
-            right: 16,
-            bottom: 24,
-          }}
-        >
-          <Btn
-            text={saving ? "Saving..." : "Save changes"}
+        <View style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          flexDirection: "row",
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 28,
+          backgroundColor: colors.bgDark,
+          borderTopWidth: 1,
+          borderTopColor: colors.bg,
+          gap: 10,
+        }}>
+          <TouchableOpacity
+            onPress={handleDiscardNotifications}
+            disabled={saving}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 14,
+              backgroundColor: colors.bg,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{
+              fontFamily: "Outfit_500Medium",
+              fontSize: 15,
+              color: colors.textMuted,
+            }}>
+              Discard
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleSaveNotifications}
             disabled={saving}
-            styleBtn={{
-              borderRadius: 999,
-              paddingHorizontal: 24,
-              paddingVertical: 10,
-              minWidth: 140,
+            style={{
+              flex: 2,
+              paddingVertical: 14,
+              borderRadius: 14,
+              backgroundColor: colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
+          >
+            <Text style={{
+              fontFamily: "Outfit_600SemiBold",
+              fontSize: 15,
+              color: "#ffffff",
+            }}>
+              {saving ? "Saving..." : "Save changes"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
   );
 }
-

@@ -5,6 +5,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Switch,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "react-native";
@@ -12,7 +13,6 @@ import { useRouter, useNavigation } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import StyleDefault from "../../../constants/DefaultStyles";
 import BackBtn from "../../../components/BackButton";
-import Btn from "../../../components/CustomButton";
 import UnsavedChangesModal from "../../../components/settings/UnsavedChangesModal";
 import { useUnsavedChangesGuard } from "../../../components/settings/useUnsavedChangesGuard";
 import { getAuth } from "@react-native-firebase/auth";
@@ -21,6 +21,9 @@ import {
   updateUserSettings,
   type UserSettings,
 } from "../../../lib/users";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faFont } from "@fortawesome/free-solid-svg-icons/faFont";
+import { faMap } from "@fortawesome/free-solid-svg-icons/faMap";
 
 function accessibilityDirty(
   draft: UserSettings | null,
@@ -39,6 +42,7 @@ export default function AccessibilitySettingsScreen() {
   const defaultStyles = StyleDefault({ colorScheme });
   const router = useRouter();
   const navigation = useNavigation();
+  const isDark = colorScheme === "dark";
 
   const auth = getAuth();
   const user = auth.currentUser;
@@ -113,24 +117,33 @@ export default function AccessibilitySettingsScreen() {
     setDraft({ ...draft, ...partial });
   }
 
+  const sectionLabel = {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: "uppercase" as const,
+    color: colors.textMuted,
+    marginBottom: 8,
+    marginLeft: 2,
+  };
+
+  const card = {
+    borderRadius: 20,
+    backgroundColor: colors.bg,
+    overflow: "hidden" as const,
+  };
+
   if (loading || !draft) {
     return (
       <SafeAreaView style={defaultStyles.container}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text
-            style={{
-              ...defaultStyles.subtitle,
-              marginTop: 12,
-              color: colors.text,
-            }}
-          >
+          <Text style={{
+            fontFamily: "Outfit_400Regular",
+            fontSize: 14,
+            color: colors.textMuted,
+            marginTop: 12,
+          }}>
             Loading accessibility settings...
           </Text>
         </View>
@@ -146,136 +159,165 @@ export default function AccessibilitySettingsScreen() {
         onDiscard={handleGuardDiscard}
         saving={guardSaving}
       />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
+
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
         <BackBtn onPress={() => router.back()} />
-        <Text
-          style={{
-            ...defaultStyles.title,
-            marginLeft: 12,
-          }}
-        >
+        <Text style={{ ...defaultStyles.title, marginLeft: 12 }}>
           Accessibility & appearance
         </Text>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: isDirty ? 104 : 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              ...defaultStyles.subtitle,
-              marginBottom: 8,
-              color: colors.textMuted,
-            }}
-          >
-            Text
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit_400Regular",
-                fontSize: 14,
-                color: colors.text,
-                flex: 1,
-              }}
-            >
-              Larger text
-            </Text>
-            <Switch
-              value={!!draft.large_text}
-              onValueChange={(value) =>
-                updateDraft({ large_text: value })
-              }
-              trackColor={{
-                false: colors.bg,
-                true: colors.primary,
-              }}
-              thumbColor={colors.bgDark}
-            />
+        {/* Reading */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={sectionLabel}>Reading</Text>
+          <View style={{ ...card, paddingHorizontal: 16, paddingVertical: 14 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                backgroundColor: colors.bgDark,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 14,
+              }}>
+                <FontAwesomeIcon icon={faFont} size={16} color="#10b981" />
+              </View>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{
+                  fontFamily: "Outfit_500Medium",
+                  fontSize: 15,
+                  color: colors.text,
+                }}>
+                  Larger text
+                </Text>
+                <Text style={{
+                  fontFamily: "Outfit_400Regular",
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                }}>
+                  Increases text size across the app
+                </Text>
+              </View>
+              <Switch
+                value={!!draft.large_text}
+                onValueChange={(value) => updateDraft({ large_text: value })}
+                trackColor={{ false: colors.bgDark, true: colors.primary }}
+                thumbColor={isDark ? colors.textMuted : "#ffffff"}
+              />
+            </View>
           </View>
         </View>
 
+        {/* Map */}
         <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              ...defaultStyles.subtitle,
-              marginBottom: 8,
-              color: colors.textMuted,
-            }}
-          >
-            Map
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit_400Regular",
-                fontSize: 14,
-                color: colors.text,
-                flex: 1,
-              }}
-            >
-              High contrast map
-            </Text>
-            <Switch
-              value={!!draft.high_contrast_map}
-              onValueChange={(value) =>
-                updateDraft({ high_contrast_map: value })
-              }
-              trackColor={{
-                false: colors.bg,
-                true: colors.primary,
-              }}
-              thumbColor={colors.bgDark}
-            />
+          <Text style={sectionLabel}>Map</Text>
+          <View style={{ ...card, paddingHorizontal: 16, paddingVertical: 14 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                backgroundColor: colors.bgDark,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 14,
+              }}>
+                <FontAwesomeIcon icon={faMap} size={16} color="#0ea5e9" />
+              </View>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{
+                  fontFamily: "Outfit_500Medium",
+                  fontSize: 15,
+                  color: colors.text,
+                }}>
+                  High contrast map
+                </Text>
+                <Text style={{
+                  fontFamily: "Outfit_400Regular",
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                }}>
+                  Improves visibility of map elements
+                </Text>
+              </View>
+              <Switch
+                value={!!draft.high_contrast_map}
+                onValueChange={(value) => updateDraft({ high_contrast_map: value })}
+                trackColor={{ false: colors.bgDark, true: colors.primary }}
+                thumbColor={isDark ? colors.textMuted : "#ffffff"}
+              />
+            </View>
           </View>
         </View>
       </ScrollView>
+
+      {/* Save Bar */}
       {isDirty && (
-        <View
-          style={{
-            position: "absolute",
-            right: 16,
-            bottom: 24,
-          }}
-        >
-          <Btn
-            text={saving ? "Saving..." : "Save changes"}
+        <View style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          flexDirection: "row",
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 28,
+          backgroundColor: colors.bgDark,
+          borderTopWidth: 1,
+          borderTopColor: colors.bg,
+          gap: 10,
+        }}>
+          <TouchableOpacity
+            onPress={handleDiscardAccessibility}
+            disabled={saving}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 14,
+              backgroundColor: colors.bg,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{
+              fontFamily: "Outfit_500Medium",
+              fontSize: 15,
+              color: colors.textMuted,
+            }}>
+              Discard
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleSaveAccessibility}
             disabled={saving}
-            styleBtn={{
-              borderRadius: 999,
-              paddingHorizontal: 24,
-              paddingVertical: 10,
-              minWidth: 140,
+            style={{
+              flex: 2,
+              paddingVertical: 14,
+              borderRadius: 14,
+              backgroundColor: colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
+          >
+            <Text style={{
+              fontFamily: "Outfit_600SemiBold",
+              fontSize: 15,
+              color: "#ffffff",
+            }}>
+              {saving ? "Saving..." : "Save changes"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
   );
 }
-

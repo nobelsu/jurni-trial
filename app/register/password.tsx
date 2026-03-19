@@ -22,9 +22,10 @@ export default function RegisterPasswordScreen() {
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
 
-    const params = useGlobalSearchParams<{ email: string, name: string }>();
-    const email = params.email
-    const name = params.name
+    const params = useGlobalSearchParams<{ email: string, name: string, gender?: string }>();
+    const email = params.email;
+    const name = params.name;
+    const gender = params.gender;
 
     async function handleConfirm() {
         setErrorMessage("");
@@ -60,7 +61,15 @@ export default function RegisterPasswordScreen() {
             return;
         }
 
-        router.push({pathname: 'register/confirm', params: { email: email, password: password, name: name }});
+        router.push({
+            pathname: 'register/confirm',
+            params: {
+                email: email,
+                password: password,
+                name: name,
+                gender: gender,
+            }
+        });
     }
 
     return (

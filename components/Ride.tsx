@@ -62,8 +62,8 @@ export default function RideComponent({id, selected, setSelected, nextRef, setPh
                 if (id == selected) {
                     await reverseGeocodePickupForConfirm(pickupCoords);
                     setPhase(2)
-                    forceClose()
-                    nextRef.current?.snapToIndex(0)
+                    // forceClose()
+                    // nextRef.current?.snapToIndex(0)
                 }
                 if (!setSelected) return
                 else if (id != selected) setSelected(id);

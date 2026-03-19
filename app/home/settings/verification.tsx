@@ -1,23 +1,34 @@
 import { useEffect, useState } from "react";
-import { View, Text, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Alert,
+  ActivityIndicator,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { getAuth } from "@react-native-firebase/auth";
 import { Colors } from "../../../constants/Colors";
 import StyleDefault from "../../../constants/DefaultStyles";
-import Btn from "../../../components/CustomButton";
 import BackBtn from "../../../components/BackButton";
 import {
   getUserVerificationStatus,
   markUserVerified,
 } from "../../../lib/users";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faShieldHalved } from "@fortawesome/free-solid-svg-icons/faShieldHalved";
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
 
 export default function VerificationSettingsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const defaultStyles = StyleDefault({ colorScheme });
   const router = useRouter();
+  const isDark = colorScheme === "dark";
   const user = getAuth().currentUser;
 
   const [loading, setLoading] = useState(true);
@@ -56,7 +67,6 @@ export default function VerificationSettingsScreen() {
       return;
     }
 
-    // Placeholder implementation until third-party KYC is integrated.
     setStarting(true);
     try {
       await markUserVerified(user.uid);
@@ -72,22 +82,19 @@ export default function VerificationSettingsScreen() {
     }
   }
 
+  const verifiedColor = "#10b981";
+  const pendingColor = "#f59e0b";
+  const statusColor = verified ? verifiedColor : pendingColor;
+  const iconBgColor = verified
+    ? (isDark ? "#0a2e1e" : "#d1fae5")
+    : (isDark ? "#2a1f00" : "#fef3c7");
+
   return (
     <SafeAreaView style={defaultStyles.container}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 20,
-        }}
-      >
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
         <BackBtn onPress={() => router.back()} />
-        <Text
-          style={{
-            ...defaultStyles.title,
-            marginLeft: 12,
-          }}
-        >
+        <Text style={{ ...defaultStyles.title, marginLeft: 12 }}>
           Identity verification
         </Text>
       </View>
@@ -95,69 +102,200 @@ export default function VerificationSettingsScreen() {
       {loading ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text
-            style={{
-              ...defaultStyles.subtitle,
-              marginTop: 10,
-              color: colors.textMuted,
-            }}
-          >
+          <Text style={{
+            fontFamily: "Outfit_400Regular",
+            fontSize: 14,
+            color: colors.textMuted,
+            marginTop: 12,
+          }}>
             Checking verification status...
           </Text>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
-          <View
-            style={{
-              borderRadius: 16,
-              backgroundColor: colors.bg,
-              padding: 16,
-              marginBottom: 16,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit_500Medium",
-                fontSize: 12,
-                color: colors.textMuted,
-                marginBottom: 6,
-              }}
-            >
-              Status
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero status section */}
+          <View style={{ alignItems: "center", paddingTop: 16, paddingBottom: 32 }}>
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 24,
+              backgroundColor: iconBgColor,
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: 20,
+            }}>
+              <FontAwesomeIcon
+                icon={faShieldHalved}
+                size={36}
+                color={statusColor}
+              />
+            </View>
+
+            <Text style={{
+              fontFamily: "Outfit_600SemiBold",
+              fontSize: 24,
+              color: colors.text,
+              marginBottom: 8,
+              textAlign: "center",
+            }}>
+              {verified ? "You're verified" : "Not yet verified"}
             </Text>
-            <Text
-              style={{
-                fontFamily: "Outfit_600SemiBold",
-                fontSize: 20,
-                color: verified ? colors.primary : colors.text,
-                marginBottom: 8,
-              }}
-            >
-              {verified ? "Verified" : "Not verified"}
-            </Text>
-            <Text
-              style={{
-                ...defaultStyles.subtitle,
-                color: colors.textMuted,
-              }}
-            >
+
+            <Text style={{
+              fontFamily: "Outfit_400Regular",
+              fontSize: 14,
+              color: colors.textMuted,
+              textAlign: "center",
+              lineHeight: 22,
+              paddingHorizontal: 24,
+            }}>
               {verified
-                ? "Your identity has been verified. You can continue using ride features."
-                : "Verify your identity to unlock ride confirmation. We will connect this flow to a third-party KYC provider next."}
+                ? "Your identity has been confirmed. You can book rides and access all features."
+                : "Verify your identity to unlock ride booking and confirm your account."}
             </Text>
           </View>
 
+          {/* Status card */}
+          <View style={{
+            borderRadius: 20,
+            backgroundColor: colors.bg,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            marginBottom: 16,
+          }}>
+            <Text style={{
+              fontFamily: "Outfit_500Medium",
+              fontSize: 11,
+              letterSpacing: 0.8,
+              textTransform: "uppercase",
+              color: colors.textMuted,
+              marginBottom: 12,
+            }}>
+              Status
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: iconBgColor,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 12,
+              }}>
+                <FontAwesomeIcon
+                  icon={faCircleCheck}
+                  size={16}
+                  color={statusColor}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontFamily: "Outfit_600SemiBold",
+                  fontSize: 15,
+                  color: statusColor,
+                }}>
+                  {verified ? "Verified" : "Pending verification"}
+                </Text>
+                <Text style={{
+                  fontFamily: "Outfit_400Regular",
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                }}>
+                  {verified
+                    ? "Identity confirmed"
+                    : "Your account needs verification"}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* What verification unlocks */}
           {!verified && (
-            <Btn
-              text={starting ? "Starting..." : "Start verification"}
+            <View style={{
+              borderRadius: 20,
+              backgroundColor: colors.bg,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              marginBottom: 24,
+            }}>
+              <Text style={{
+                fontFamily: "Outfit_500Medium",
+                fontSize: 11,
+                letterSpacing: 0.8,
+                textTransform: "uppercase",
+                color: colors.textMuted,
+                marginBottom: 12,
+              }}>
+                What you'll unlock
+              </Text>
+              {[
+                "Book and confirm rides",
+                "Full account access",
+                "Priority support",
+              ].map((item, index) => (
+                <View
+                  key={item}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 8,
+                    borderTopWidth: index === 0 ? 0 : 1,
+                    borderTopColor: colors.bgDark,
+                  }}
+                >
+                  <View style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.primary,
+                    marginRight: 12,
+                  }} />
+                  <Text style={{
+                    fontFamily: "Outfit_400Regular",
+                    fontSize: 14,
+                    color: colors.text,
+                  }}>
+                    {item}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* CTA */}
+          {!verified && (
+            <TouchableOpacity
               onPress={startKycFlow}
               disabled={starting}
-              styleBtn={{
-                borderRadius: 999,
+              style={{
+                borderRadius: 16,
+                backgroundColor: colors.primary,
+                paddingVertical: 16,
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "row",
+                gap: 8,
               }}
-            />
+            >
+              <Text style={{
+                fontFamily: "Outfit_600SemiBold",
+                fontSize: 16,
+                color: "#ffffff",
+              }}>
+                {starting ? "Starting..." : "Start verification"}
+              </Text>
+              {!starting && (
+                <FontAwesomeIcon icon={faChevronRight} size={13} color="#ffffff" />
+              )}
+            </TouchableOpacity>
           )}
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );

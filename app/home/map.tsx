@@ -31,9 +31,10 @@ import RouteWalking from '../../components/RouteWalking';
 import Toast from '../../components/Toast';
 import { getAuth } from '@react-native-firebase/auth';
 import { calculateRideCostByType, RideTypeId } from '../../lib/cost';
-import { getSilentOnlyDefault, getUserVerificationStatus } from '../../lib/users';
+import { getSilentOnlyDefault, getUserSettings, getUserVerificationStatus, updateUserSettings } from '../../lib/users';
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 import { faApple } from '@fortawesome/free-brands-svg-icons/faApple';
+import { faEllipsisVertical } from '@fortawesome/free-solid-svg-icons/faEllipsisVertical';
 
 export default function MapScreen() {
     setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -91,6 +92,8 @@ export default function MapScreen() {
 
     const [followUser, setFollowUser] = useState<boolean>(false)
     const [silentOnly, setSilentOnly] = useState<boolean>(false);
+    const [femaleDriverPreferred, setFemaleDriverPreferred] = useState<boolean>(false);
+    const [rideOptionsVisible, setRideOptionsVisible] = useState<boolean>(false);
     const [verified, setVerified] = useState<boolean>(false);
     const [styleLoaded, setStyleLoaded] = useState<boolean>(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -102,27 +105,8 @@ export default function MapScreen() {
     const user = auth.currentUser;
 
     useEffect(() => {
-        fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Debug-Session-Id': '4e9209',
-            },
-            body: JSON.stringify({
-                sessionId: '4e9209',
-                runId: 'initial',
-                hypothesisId: 'H4',
-                location: 'app/home/map.tsx:140',
-                message: 'Color scheme changed for MapView',
-                data: {
-                    colorScheme,
-                },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => {});
         setStyleLoaded(false);
     }, [colorScheme]);
-    // #endregion
 
     async function getCurrentLocation() {
         let { status } = await Location.requestForegroundPermissionsAsync();
@@ -253,10 +237,6 @@ export default function MapScreen() {
             );
 
             setPhase(1);
-            // bottomSheetRef.current?.forceClose();
-            // console.log("hit?")
-            // bottomSheetRef1.current?.snapToIndex(0);
-            // console.log(bottomSheetRef1.current)
         } catch(err: any) {
             handleNoDrivingRoute();
         }
@@ -294,7 +274,28 @@ export default function MapScreen() {
             setWalkingCoordinates([]);
             setFollowUser(false);
             setMoving(false);
-            setSilentOnly(false);
+            if (user?.uid) {
+                getUserSettings(user.uid)
+                    .then((settings) => {
+                        setSilentOnly(!!settings.silent_only);
+                        setFemaleDriverPreferred(!!settings.female_driver_preferred);
+                    })
+                    .catch(() => {
+                        setSilentOnly(false);
+                        setFemaleDriverPreferred(false);
+                    });
+                getUserVerificationStatus(user.uid)
+                    .then((isVerified) => {
+                        setVerified(isVerified);
+                    })
+                    .catch(() => {
+                        setVerified(false);
+                    });
+            } else {
+                setSilentOnly(false);
+                setFemaleDriverPreferred(false);
+                setVerified(false);
+            }
             // bottomSheetRef.current?.snapToIndex(0);
             // bottomSheetRef1.current?.forceClose();
             // bottomSheetRef2.current?.forceClose();
@@ -308,12 +309,14 @@ export default function MapScreen() {
         setFollowUser(false);
         getCurrentLocation();
         if (user?.uid) {
-            getSilentOnlyDefault(user.uid)
-                .then((val) => {
-                    setSilentOnly(val);
+            getUserSettings(user.uid)
+                .then((settings) => {
+                    setSilentOnly(!!settings.silent_only);
+                    setFemaleDriverPreferred(!!settings.female_driver_preferred);
                 })
                 .catch(() => {
-                    // ignore preference load errors
+                    setSilentOnly(false);
+                    setFemaleDriverPreferred(false);
                 });
             getUserVerificationStatus(user.uid)
                 .then((isVerified) => {
@@ -324,6 +327,7 @@ export default function MapScreen() {
                 });
         } else {
             setSilentOnly(false);
+            setFemaleDriverPreferred(false);
             setVerified(false);
         }
     }, []);
@@ -594,7 +598,7 @@ export default function MapScreen() {
                     return (
                         <BottomSheetFooter {...props}>
                             <TouchableOpacity 
-                                style={{width: "100%", height: 50, paddingHorizontal: 20, flexDirection: "row", marginBottom: 5,}}>
+                                style={{width: "100%", height: 50, paddingHorizontal: 20, flexDirection: "row", marginBottom: 5}}>
                                 <View style={{flex: 1, flexDirection: "row", alignItems: "center"}}>
                                     <FontAwesomeIcon
                                         icon={faApple}
@@ -625,6 +629,14 @@ export default function MapScreen() {
                                 style={{flex: 1, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
                                 <Text style={{fontSize: 18, fontWeight: 500, color: Colors[colorScheme ?? "light"].bg}}>Choose {rideTypeMetadata[selected]?.name}</Text>
                                 </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setRideOptionsVisible(true);
+                                    }}
+                                    style={{width: 50, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}
+                                >
+                                    <FontAwesomeIcon icon={faEllipsisVertical} size={18} color={Colors[colorScheme ?? "light"].bg}/>
+                                </TouchableOpacity>
                             </View>
                         </BottomSheetFooter>
                     )
@@ -653,6 +665,10 @@ export default function MapScreen() {
                     setSilentOnly={setSilentOnly}
                     pickupCoords={pickupCoords}
                     setPickupInput={setPickupInput}
+                    femaleDriverPreferred={femaleDriverPreferred}
+                    setFemaleDriverPreferred={setFemaleDriverPreferred}
+                    optionsVisible={rideOptionsVisible}
+                    setOptionsVisible={setRideOptionsVisible}
                 />
             </BottomSheet>
             <BottomSheet 

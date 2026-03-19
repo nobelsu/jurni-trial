@@ -13,6 +13,7 @@ import { useEffect, useState }  from 'react';
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser';
+import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars';
 
 export default function RegisterEmailScreen() {
     const router = useRouter();
@@ -21,6 +22,7 @@ export default function RegisterEmailScreen() {
 
     const [email, setEmail] = useState<string>("");
     const [name, setName] = useState<string>("");
+    const [gender, setGender] = useState<"male" | "female" | "non_binary" | "prefer_not_to_say">("prefer_not_to_say");
 
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
@@ -54,7 +56,14 @@ export default function RegisterEmailScreen() {
             return;
         }
 
-        router.push({pathname: 'register/password', params: {email: trimmedEmail, name: trimmedName}});
+        router.push({
+            pathname: 'register/password',
+            params: {
+                email: trimmedEmail,
+                name: trimmedName,
+                gender,
+            }
+        });
     }
 
     return (
@@ -74,6 +83,53 @@ export default function RegisterEmailScreen() {
                             <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
                                 <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
                                 <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} placeholder='Email' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
+                            </View>
+                        </View>
+                        <View style={{ marginTop: 8 }}>
+                            <Text style={{ fontFamily: 'Outfit_500Medium', fontSize: 13, color: Colors[colorScheme ?? "light"].textMuted, marginBottom: 6 }}>
+                                Gender
+                            </Text>
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                                {[
+                                    { id: "male", label: "Male" },
+                                    { id: "female", label: "Female" },
+                                    { id: "non_binary", label: "Non-binary" },
+                                    { id: "prefer_not_to_say", label: "Prefer not to say" },
+                                ].map((option) => {
+                                    const isActive = gender === option.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={option.id}
+                                            onPress={() => setGender(option.id as typeof gender)}
+                                            style={{
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                paddingHorizontal: 14,
+                                                paddingVertical: 8,
+                                                borderRadius: 999,
+                                                backgroundColor: isActive
+                                                    ? Colors[colorScheme ?? "light"].primary
+                                                    : Colors[colorScheme ?? "light"].bg,
+                                            }}
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faVenusMars}
+                                                size={11}
+                                                color={isActive ? "#ffffff" : Colors[colorScheme ?? "light"].textMuted}
+                                                style={{ marginRight: 6 }}
+                                            />
+                                            <Text
+                                                style={{
+                                                    fontFamily: 'Outfit_500Medium',
+                                                    fontSize: 13,
+                                                    color: isActive ? "#ffffff" : Colors[colorScheme ?? "light"].text,
+                                                }}
+                                            >
+                                                {option.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}

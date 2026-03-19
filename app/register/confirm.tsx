@@ -14,7 +14,7 @@ import auth, { linkWithCredential } from '@react-native-firebase/auth';
 import { useState } from 'react';
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
-import type { UserSettings } from "../../lib/users";
+import type { UserSettings, UserGender } from "../../lib/users";
 
 export default function ConfirmPasswordScreen() {
     const router = useRouter();
@@ -23,7 +23,7 @@ export default function ConfirmPasswordScreen() {
 
     const user = auth().currentUser;
 
-    const params = useGlobalSearchParams<{ email: string, password : string, name: string }>();
+    const params = useGlobalSearchParams<{ email: string, password : string, name: string, gender?: string }>();
 
     const [passwordConfirm, setPasswordConfirm] = useState<string>("");
 
@@ -49,6 +49,15 @@ export default function ConfirmPasswordScreen() {
                 last_email_change_at: null,
             };
 
+            const rawGender = params.gender as UserGender | undefined;
+            const gender: UserGender | undefined =
+                rawGender === "male" ||
+                rawGender === "female" ||
+                rawGender === "non_binary" ||
+                rawGender === "prefer_not_to_say"
+                    ? rawGender
+                    : "prefer_not_to_say";
+
             await firestore().collection("users").doc(user.uid).set({
                 verified: false,
                 metadata: {
@@ -56,6 +65,7 @@ export default function ConfirmPasswordScreen() {
                     pickup_history: [],
                     destination_history: [],
                     name: params.name,
+                    gender,
                     rating: 5,
                     rides_taken: 0,
                 },

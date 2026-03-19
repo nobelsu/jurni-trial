@@ -8,10 +8,17 @@ export interface SearchHistoryEntry {
   coords: Position;
 }
 
+export type UserGender =
+  | "male"
+  | "female"
+  | "non_binary"
+  | "prefer_not_to_say";
+
 export type UserSettings = {
   // Ride preferences
   default_ride_type?: "basic" | "comfort" | "xl";
   silent_only?: boolean;
+  female_driver_preferred?: boolean;
   default_pickup_label?: string;
   default_pickup_coords?: Position | null;
   // Notifications
@@ -29,6 +36,7 @@ type UserDoc = {
   recent_searches?: SearchHistoryEntry[];
   metadata?: {
     name?: string;
+    gender?: UserGender;
     rating?: number;
     rides_taken?: number;
     history?: SearchHistoryEntry[];
@@ -155,6 +163,13 @@ export async function getDestinationHistory(uid: string): Promise<SearchHistoryE
   return normalizeHistory(primary, legacy, legacyTop);
 }
 
+function normalizeGender(raw: unknown): UserGender | undefined {
+  if (raw === "male" || raw === "female" || raw === "non_binary" || raw === "prefer_not_to_say") {
+    return raw;
+  }
+  return undefined;
+}
+
 export async function addToPickupHistory(
   uid: string,
   entry: SearchHistoryEntry
@@ -236,6 +251,7 @@ function normalizeUserSettings(
   return {
     default_ride_type: base.default_ride_type ?? "basic",
     silent_only: base.silent_only ?? false,
+    female_driver_preferred: base.female_driver_preferred ?? false,
     default_pickup_label: base.default_pickup_label ?? "",
     default_pickup_coords:
       Array.isArray(base.default_pickup_coords) &&
@@ -297,6 +313,7 @@ export async function updateUserSettings(
 
 export interface UserProfileMeta {
   name: string;
+  gender?: UserGender;
   rating: number;
   rides_taken: number;
 }
@@ -305,6 +322,7 @@ export async function getUserProfileMeta(uid: string): Promise<UserProfileMeta> 
   const data = await getUserDoc(uid);
 
   const name = data?.metadata?.name?.trim() || "Rider";
+   const gender = normalizeGender(data?.metadata?.gender);
   const ratingRaw = data?.metadata?.rating;
   const ridesRaw = data?.metadata?.rides_taken;
 
@@ -319,6 +337,7 @@ export async function getUserProfileMeta(uid: string): Promise<UserProfileMeta> 
 
   return {
     name,
+    gender,
     rating,
     rides_taken,
   };
@@ -337,6 +356,28 @@ export async function setUserProfileName(
       metadata: {
         ...(data?.metadata ?? {}),
         name: trimmed,
+      },
+    },
+    { merge: true }
+  );
+
+  return getUserProfileMeta(uid);
+}
+
+export async function setUserProfileGender(
+  uid: string,
+  gender: UserGender
+): Promise<UserProfileMeta> {
+  const ref = firestore().collection("users").doc(uid);
+  const data = await getUserDoc(uid);
+
+  const normalized = normalizeGender(gender) ?? "prefer_not_to_say";
+
+  await ref.set(
+    {
+      metadata: {
+        ...(data?.metadata ?? {}),
+        gender: normalized,
       },
     },
     { merge: true }

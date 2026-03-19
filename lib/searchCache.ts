@@ -22,6 +22,8 @@ let reverseCacheLoaded = false;
 const searchCache = new Map<string, CachedValue<SearchResult[]>>();
 const reverseCache = new Map<string, CachedValue<PlaceLabel>>();
 
+type ReverseSource = "geocode" | "searchbox";
+
 function now() {
   return Date.now();
 }
@@ -109,8 +111,8 @@ function roundCoord(value: number) {
   return Number(value.toFixed(REVERSE_COORD_PRECISION));
 }
 
-function makeReverseCoordsKey(coords: Position) {
-  return `${roundCoord(coords[0])},${roundCoord(coords[1])}`;
+function makeReverseCoordsKey(source: ReverseSource, coords: Position) {
+  return `${source}:${roundCoord(coords[0])},${roundCoord(coords[1])}`;
 }
 
 export function makeProximityBucket(position?: Position): string {
@@ -148,9 +150,12 @@ export async function setCachedSearchResults(
   await persistSearchCache();
 }
 
-export async function getCachedReverseGeocode(coords: Position): Promise<PlaceLabel | null> {
+export async function getCachedReverseGeocode(
+  coords: Position,
+  source: ReverseSource = "geocode"
+): Promise<PlaceLabel | null> {
   await loadReverseCache();
-  const key = makeReverseCoordsKey(coords);
+  const key = makeReverseCoordsKey(source, coords);
   const cached = reverseCache.get(key);
   if (!cached || !isFresh(cached.updatedAt)) return null;
   touchMapEntry(reverseCache, key, cached);
@@ -159,10 +164,11 @@ export async function getCachedReverseGeocode(coords: Position): Promise<PlaceLa
 
 export async function setCachedReverseGeocode(
   coords: Position,
-  label: PlaceLabel
+  label: PlaceLabel,
+  source: ReverseSource = "geocode"
 ): Promise<void> {
   await loadReverseCache();
-  const key = makeReverseCoordsKey(coords);
+  const key = makeReverseCoordsKey(source, coords);
   touchMapEntry(reverseCache, key, { value: label, updatedAt: now() });
   trimMap(reverseCache, REVERSE_CACHE_LIMIT);
   await persistReverseCache();
@@ -217,7 +223,7 @@ export async function warmReverseGeocodeCacheFromHistory(entries: SearchHistoryE
     };
     if (!label.name && !label.full_address) continue;
 
-    const key = makeReverseCoordsKey(entry.coords as Position);
+    const key = makeReverseCoordsKey("geocode", entry.coords as Position);
     if (!reverseCache.has(key)) {
       reverseCache.set(key, { value: label, updatedAt: now() });
       changed = true;

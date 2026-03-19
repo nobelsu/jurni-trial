@@ -8,7 +8,7 @@ import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type { Ride } from "../../../../lib/rides";
 import { getRideTypeDisplayName } from "../../../../lib/rides";
 import { MAPBOX_ACCESS_TOKEN, obtainDirections, Position, DrivingDirectionsResult } from "../../../../lib/mapbox";
-import { MapView, Camera, setAccessToken } from "@rnmapbox/maps";
+import { MapView, Camera, setAccessToken, MarkerView } from "@rnmapbox/maps";
 import Route from "../../../../components/Route";
 import { computeBBox, type LatLng } from "../../../../lib/shared-util";
 import BackBtn from "../../../../components/BackButton";
@@ -28,6 +28,7 @@ import { faCircleDot } from "@fortawesome/free-solid-svg-icons/faCircleDot";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons/faLocationDot";
 import { faStar } from "@fortawesome/free-solid-svg-icons/faStar";
 import { setOrUpdateRideRating } from "../../../../lib/drivers";
+import RouteEndpointPin from "../../../../components/RouteEndpointPin";
 
 function formatDateTime(timestamp: FirebaseFirestoreTypes.Timestamp | null): string {
   if (!timestamp) return "—";
@@ -447,6 +448,11 @@ export default function RideDetailsScreen() {
 
   const cameraRef = useRef<Camera | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
+  const [styleLoaded, setStyleLoaded] = useState(false);
+
+  useEffect(() => {
+      setStyleLoaded(false);
+  }, [colorScheme]);
 
   useEffect(() => {
     setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -561,10 +567,10 @@ export default function RideDetailsScreen() {
     return {
       ne: bounds.ne,
       sw: bounds.sw,
-      paddingTop: 40,
-      paddingRight: 40,
+      paddingTop: 70,
+      paddingRight: 70,
       paddingBottom: 280,
-      paddingLeft: 40,
+      paddingLeft: 70,
     };
   }, [bounds]);
 
@@ -643,14 +649,14 @@ export default function RideDetailsScreen() {
         {canShowRoute && bounds && routeCoords.length > 0 && (
           <MapView
             style={{ flex: 1 }}
-            styleURL={
-              colorScheme === "light"
-                ? "mapbox://styles/mapbox/light-v11"
-                : "mapbox://styles/mapbox/dark-v11"
-            }
+            styleURL={colorScheme == "light" ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11'}
             logoEnabled={false}
             scaleBarEnabled={false}
             attributionEnabled={false}
+            onDidFinishLoadingStyle={() => {
+                setStyleLoaded(true);
+            }}
+            projection='mercator'
           >
             <Camera
               ref={cameraRef}
@@ -658,7 +664,28 @@ export default function RideDetailsScreen() {
               animationDuration={0}
               animationMode="none"
             />
-            <Route coordinates={routeCoords} />
+            {styleLoaded && <Route coordinates={routeCoords}/>}
+            {(routeCoords.length > 1 && styleLoaded) && (
+                <>
+                    <MarkerView
+                        key={`driving-route-start-${colorScheme}`}
+                        id="driving-route-start"
+                        coordinate={routeCoords[0]}
+                        allowOverlapWithPuck={true}
+                        allowOverlap={true}
+                    >
+                        <RouteEndpointPin type="start" />
+                    </MarkerView>
+                    <MarkerView
+                        id="driving-route-end"
+                        coordinate={routeCoords[routeCoords.length - 1]}
+                        allowOverlapWithPuck={true}
+                        allowOverlap={true}
+                    >
+                        <RouteEndpointPin type="end" />
+                    </MarkerView>
+                </>
+            )}
           </MapView>
         )}
         {routeError && (
@@ -709,8 +736,8 @@ export default function RideDetailsScreen() {
         handleIndicatorStyle={{ backgroundColor: colors.text }}
         onChange={(idx) => {
           if (!bounds || !cameraRef.current) return;
-          if (idx === 0)cameraRef.current.fitBounds(bounds.ne, bounds.sw, [80, 40, 280, 40], 800);
-          else cameraRef.current.fitBounds(bounds.ne, bounds.sw, [80, 40, 520, 40], 800);
+          if (idx === 0)cameraRef.current.fitBounds(bounds.ne, bounds.sw, [70, 70, 280, 70], 800);
+          else cameraRef.current.fitBounds(bounds.ne, bounds.sw, [70, 70, 520, 70], 800);
         }}
       >
         <BottomSheetScrollView>

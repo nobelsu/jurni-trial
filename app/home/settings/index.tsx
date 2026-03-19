@@ -15,7 +15,6 @@ import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Colors } from "../../../constants/Colors";
 import StyleDefault from "../../../constants/DefaultStyles";
-import Btn from "../../../components/CustomButton";
 import UnsavedChangesModal from "../../../components/settings/UnsavedChangesModal";
 import { useUnsavedChangesGuard } from "../../../components/settings/useUnsavedChangesGuard";
 import { getAuth } from "@react-native-firebase/auth";
@@ -35,6 +34,20 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faCar } from "@fortawesome/free-solid-svg-icons/faCar";
 import { faStar } from "@fortawesome/free-solid-svg-icons/faStar";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
+import { faShieldHalved } from "@fortawesome/free-solid-svg-icons/faShieldHalved";
+import { faUser } from "@fortawesome/free-solid-svg-icons/faUser";
+import { faBell } from "@fortawesome/free-solid-svg-icons/faBell";
+import { faUniversalAccess } from "@fortawesome/free-solid-svg-icons/faUniversalAccess";
+import { faLocationDot } from "@fortawesome/free-solid-svg-icons/faLocationDot";
+import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function SettingsHomeScreen() {
   const colorScheme = useColorScheme();
@@ -42,6 +55,7 @@ export default function SettingsHomeScreen() {
   const defaultStyles = StyleDefault({ colorScheme });
   const router = useRouter();
   const navigation = useNavigation();
+  const isDark = colorScheme === "dark";
 
   const auth = getAuth();
   const user = auth.currentUser;
@@ -146,6 +160,7 @@ export default function SettingsHomeScreen() {
       setSavingName(false);
     }
   }
+
   async function handleRemoveFavourite(entry: SearchHistoryEntry) {
     if (!user) return;
     try {
@@ -206,20 +221,24 @@ export default function SettingsHomeScreen() {
   const primaryItems = [
     {
       title: "Identity verification",
-      description: verified
-        ? "Verified account"
-        : "Verify your identity to complete bookings",
+      description: verified ? "Your account is verified" : "Verify your identity to book rides",
       route: "/home/settings/verification",
+      icon: faShieldHalved,
+      iconColor: "#f59e0b",
     },
     {
       title: "Account & profile",
-      description: "Name, email, password, account controls",
+      description: "Email, password, account controls",
       route: "/home/settings/account",
+      icon: faUser,
+      iconColor: colors.primary,
     },
     {
       title: "Ride preferences",
       description: "Default ride type, quiet rides",
       route: "/home/settings/ride",
+      icon: faCar,
+      iconColor: "#0ea5e9",
     },
   ];
 
@@ -228,13 +247,33 @@ export default function SettingsHomeScreen() {
       title: "Notifications",
       description: "Ride updates, promos, push alerts",
       route: "/home/settings/notifications",
+      icon: faBell,
+      iconColor: "#8b5cf6",
     },
     {
       title: "Accessibility & appearance",
-      description: "Text size, map contrast, visual comfort",
+      description: "Text size, contrast, visual comfort",
       route: "/home/settings/accessibility",
+      icon: faUniversalAccess,
+      iconColor: "#10b981",
     },
   ];
+
+  const sectionLabel = {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: "uppercase" as const,
+    color: colors.textMuted,
+    marginBottom: 8,
+    marginLeft: 2,
+  };
+
+  const card = {
+    borderRadius: 20,
+    backgroundColor: colors.bg,
+    overflow: "hidden" as const,
+  };
 
   return (
     <SafeAreaView style={defaultStyles.container}>
@@ -263,13 +302,9 @@ export default function SettingsHomeScreen() {
           setShowDrawerUnsavedModal(false);
         }}
       />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
+
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
         <TouchableOpacity
           onPress={() => {
             if (hasUnsavedChanges) {
@@ -281,521 +316,446 @@ export default function SettingsHomeScreen() {
           style={{
             height: 40,
             width: 40,
-            borderRadius: 20,
-            backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+            borderRadius: 12,
+            backgroundColor: colors.bg,
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <FontAwesomeIcon
-            icon={faBars}
-            size={18}
-            color={Colors[colorScheme ?? "light"].text}
-          />
+          <FontAwesomeIcon icon={faBars} size={16} color={colors.text} />
         </TouchableOpacity>
-        <Text
-          style={{
-            ...defaultStyles.title,
-            marginLeft: 12,
-          }}
-        >
-          Settings
-        </Text>
+        <Text style={{ ...defaultStyles.title, marginLeft: 12 }}>Settings</Text>
       </View>
 
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 80 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {user && (
-            <View
-              style={{
-                marginBottom: 24,
-                borderRadius: 16,
-                backgroundColor: colors.bg,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Outfit_500Medium",
-                  fontSize: 14,
-                  color: colors.textMuted,
-                  marginBottom: 8,
-                }}
-              >
-                Profile
-              </Text>
-
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: hasUnsavedChanges ? 104 : 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Card */}
+        {user && (
+          <View style={{ marginBottom: 24 }}>
+            <Text style={sectionLabel}>Profile</Text>
+            <View style={{ ...card, padding: 20 }}>
               {loadingQuick || !settings || !profileMeta ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 4,
-                  }}
-                >
+                <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text
-                    style={{
-                      fontFamily: "Outfit_400Regular",
-                      fontSize: 13,
-                      color: colors.textMuted,
-                      marginLeft: 8,
-                    }}
-                  >
-                    Loading your profile...
+                  <Text style={{
+                    fontFamily: "Outfit_400Regular",
+                    fontSize: 14,
+                    color: colors.textMuted,
+                    marginLeft: 10,
+                  }}>
+                    Loading profile...
                   </Text>
                 </View>
               ) : (
                 <>
-                  <Text
-                    style={{
-                      fontFamily: "Outfit_500Medium",
-                      fontSize: 12,
-                      color: colors.textMuted,
-                      marginBottom: 4,
-                    }}
-                  >
-                    Name
-                  </Text>
-                  <View
-                    style={{
-                      borderRadius: 12,
-                      backgroundColor: colors.bgDark,
-                      paddingHorizontal: 12,
-                      paddingVertical: 10,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <TextInput
-                      value={displayName}
-                      onChangeText={setDisplayName}
-                      placeholder="Your name"
-                      placeholderTextColor={colors.textDull}
-                      style={{
-                        fontFamily: "Outfit_400Regular",
-                        fontSize: 16,
-                        color: colors.text,
-                      }}
-                    />
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: 8,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 999,
-                        backgroundColor: colors.bgDark,
-                      }}
-                    >
-                      <FontAwesomeIcon
-                        icon={faCar}
-                        size={14}
-                        color={colors.textMuted}
-                      />
-                      <Text
-                        style={{
-                          marginLeft: 6,
+                  {/* Avatar + Name Row */}
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                    <View style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 18,
+                      backgroundColor: colors.primary,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 14,
+                    }}>
+                      <Text style={{
+                        fontFamily: "Outfit_600SemiBold",
+                        fontSize: 20,
+                        color: "#ffffff",
+                        letterSpacing: 0.5,
+                      }}>
+                        {getInitials(displayName || profileMeta.name || "?")}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 11,
+                        color: colors.textMuted,
+                        marginBottom: 5,
+                        letterSpacing: 0.3,
+                      }}>
+                        Display name
+                      </Text>
+                      <View style={{
+                        borderBottomWidth: 1.5,
+                        borderBottomColor: hasUnsavedName ? colors.primary : colors.bgLight,
+                        paddingBottom: 3,
+                      }}>
+                        <TextInput
+                          value={displayName}
+                          onChangeText={setDisplayName}
+                          placeholder="Your name"
+                          placeholderTextColor={colors.textDull}
+                          style={{
+                            fontFamily: "Outfit_500Medium",
+                            fontSize: 18,
+                            color: colors.text,
+                            padding: 0,
+                          }}
+                        />
+                      </View>
+                      {profileMeta.gender && (
+                        <Text style={{
                           fontFamily: "Outfit_400Regular",
                           fontSize: 13,
-                          color: colors.text,
-                        }}
-                      >
+                          color: colors.textMuted,
+                          marginTop: 6,
+                        }}>
+                          {profileMeta.gender === "male"
+                            ? "Male"
+                            : profileMeta.gender === "female"
+                            ? "Female"
+                            : profileMeta.gender === "non_binary"
+                            ? "Non-binary"
+                            : "Prefer not to say"}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Stats Row */}
+                  <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+                    <View style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 999,
+                      backgroundColor: colors.bgDark,
+                    }}>
+                      <FontAwesomeIcon icon={faCar} size={12} color={colors.primary} />
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 13,
+                        color: colors.text,
+                      }}>
                         {profileMeta.rides_taken} rides
                       </Text>
                     </View>
-
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 999,
-                        backgroundColor: colors.bgDark,
-                      }}
-                    >
-                      <FontAwesomeIcon
-                        icon={faStar}
-                        size={14}
-                        color={colors.textMuted}
-                      />
-                      <Text
-                        style={{
-                          marginLeft: 6,
-                          fontFamily: "Outfit_400Regular",
-                          fontSize: 13,
-                          color: colors.text,
-                        }}
-                      >
+                    <View style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 999,
+                      backgroundColor: colors.bgDark,
+                    }}>
+                      <FontAwesomeIcon icon={faStar} size={12} color="#f59e0b" />
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 13,
+                        color: colors.text,
+                      }}>
                         {profileMeta.rating.toFixed(1)} rating
                       </Text>
                     </View>
                   </View>
 
+                  {/* Verification Row */}
                   <TouchableOpacity
                     onPress={() => router.push("/home/settings/verification")}
                     style={{
-                      marginTop: 4,
-                      borderRadius: 12,
-                      backgroundColor: colors.bgDark,
-                      paddingHorizontal: 12,
-                      paddingVertical: 10,
                       flexDirection: "row",
                       alignItems: "center",
-                      justifyContent: "space-between",
+                      backgroundColor: colors.bgDark,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      marginBottom: 20,
                     }}
                   >
-                    <View style={{ flex: 1, paddingRight: 12 }}>
-                      <Text
-                        style={{
-                          fontFamily: "Outfit_500Medium",
-                          fontSize: 13,
-                          color: colors.text,
-                        }}
-                      >
+                    <View style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: loadingVerification
+                        ? colors.textDull
+                        : verified
+                        ? "#10b981"
+                        : "#f59e0b",
+                      marginRight: 10,
+                    }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 14,
+                        color: colors.text,
+                      }}>
                         Identity verification
                       </Text>
-                      <Text
-                        style={{
-                          fontFamily: "Outfit_400Regular",
-                          fontSize: 12,
-                          color: colors.textMuted,
-                          marginTop: 2,
-                        }}
-                      >
+                      <Text style={{
+                        fontFamily: "Outfit_400Regular",
+                        fontSize: 12,
+                        color: colors.textMuted,
+                        marginTop: 1,
+                      }}>
                         {loadingVerification
-                          ? "Checking verification status..."
+                          ? "Checking status..."
                           : verified
-                          ? "Verified"
-                          : "Not verified"}
+                          ? "Your identity is verified"
+                          : "Tap to verify your identity"}
                       </Text>
                     </View>
-                    <Text
-                      style={{
-                        fontFamily: "Outfit_500Medium",
-                        fontSize: 18,
-                        color: colors.textMuted,
-                      }}
-                    >
-                      ›
-                    </Text>
+                    <FontAwesomeIcon icon={faChevronRight} size={11} color={colors.textMuted} />
                   </TouchableOpacity>
 
-                  {hasUnsavedChanges && (
-                    <View style={{ height: 8 }} />
-                  )}
+                  {/* Divider */}
+                  <View style={{
+                    height: 1,
+                    backgroundColor: colors.bgDark,
+                    marginHorizontal: -20,
+                    marginBottom: 20,
+                  }} />
 
-                  <Text
-                    style={{
-                      fontFamily: "Outfit_500Medium",
-                      fontSize: 12,
-                      color: colors.textMuted,
-                      marginBottom: 4,
-                    }}
-                  >
+                  {/* Quick Settings Label */}
+                  <Text style={{
+                    fontFamily: "Outfit_500Medium",
+                    fontSize: 11,
+                    letterSpacing: 0.8,
+                    textTransform: "uppercase",
+                    color: colors.textMuted,
+                    marginBottom: 14,
+                  }}>
                     Quick settings
                   </Text>
 
-                  <View style={{ marginTop: 2 }}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 6,
-                      }}
-                    >
-                      <View style={{ flex: 1, paddingRight: 12 }}>
-                        <Text
-                          style={{
-                            fontFamily: "Outfit_400Regular",
-                            fontSize: 14,
-                            color: colors.text,
-                          }}
-                        >
-                          Ride updates
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: "Outfit_400Regular",
-                            fontSize: 12,
-                            color: colors.textMuted,
-                            marginTop: 2,
-                          }}
-                        >
-                          Trip status and driver arrivals
-                        </Text>
-                      </View>
-                      <Switch
-                        value={
-                          draftSettings
-                            ? draftSettings.ride_updates_push !== false
-                            : settings.ride_updates_push !== false
-                        }
-                        onValueChange={(value) =>
-                          updateDraftSettings({ ride_updates_push: value })
-                        }
-                        trackColor={{
-                          false: colors.bg,
-                          true: colors.primary,
-                        }}
-                        thumbColor={colors.bgDark}
-                      />
+                  {/* Ride Updates Toggle */}
+                  <View style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 2,
+                  }}>
+                    <View style={{ flex: 1, paddingRight: 16 }}>
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 15,
+                        color: colors.text,
+                      }}>
+                        Ride updates
+                      </Text>
+                      <Text style={{
+                        fontFamily: "Outfit_400Regular",
+                        fontSize: 12,
+                        color: colors.textMuted,
+                        marginTop: 2,
+                      }}>
+                        Trip status and driver arrivals
+                      </Text>
                     </View>
+                    <Switch
+                      value={
+                        draftSettings
+                          ? draftSettings.ride_updates_push !== false
+                          : settings.ride_updates_push !== false
+                      }
+                      onValueChange={(value) =>
+                        updateDraftSettings({ ride_updates_push: value })
+                      }
+                      trackColor={{ false: colors.bgDark, true: colors.primary }}
+                      thumbColor={isDark ? colors.textMuted : "#ffffff"}
+                    />
+                  </View>
 
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 6,
-                        marginTop: 4,
-                      }}
-                    >
-                      <View style={{ flex: 1, paddingRight: 12 }}>
-                        <Text
-                          style={{
-                            fontFamily: "Outfit_400Regular",
-                            fontSize: 14,
-                            color: colors.text,
-                          }}
-                        >
-                          Quiet rides
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: "Outfit_400Regular",
-                            fontSize: 12,
-                            color: colors.textMuted,
-                            marginTop: 2,
-                          }}
-                        >
-                          Prefer less conversation during trips
-                        </Text>
-                      </View>
-                      <Switch
-                        value={
-                          draftSettings
-                            ? !!draftSettings.silent_only
-                            : !!settings.silent_only
-                        }
-                        onValueChange={(value) =>
-                          updateDraftSettings({ silent_only: value })
-                        }
-                        trackColor={{
-                          false: colors.bg,
-                          true: colors.primary,
-                        }}
-                        thumbColor={colors.bgDark}
-                      />
+                  <View style={{ height: 1, backgroundColor: colors.bgDark, marginVertical: 10 }} />
+
+                  {/* Quiet Rides Toggle */}
+                  <View style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 2,
+                  }}>
+                    <View style={{ flex: 1, paddingRight: 16 }}>
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 15,
+                        color: colors.text,
+                      }}>
+                        Quiet rides
+                      </Text>
+                      <Text style={{
+                        fontFamily: "Outfit_400Regular",
+                        fontSize: 12,
+                        color: colors.textMuted,
+                        marginTop: 2,
+                      }}>
+                        Prefer less conversation during trips
+                      </Text>
                     </View>
+                    <Switch
+                      value={
+                        draftSettings
+                          ? !!draftSettings.silent_only
+                          : !!settings.silent_only
+                      }
+                      onValueChange={(value) =>
+                        updateDraftSettings({ silent_only: value })
+                      }
+                      trackColor={{ false: colors.bgDark, true: colors.primary }}
+                      thumbColor={isDark ? colors.textMuted : "#ffffff"}
+                    />
                   </View>
                 </>
               )}
             </View>
-          )}
+          </View>
+        )}
 
-        <View style={{ marginBottom: 8 }}>
-          {primaryItems.map((item) => (
-            <TouchableOpacity
-              key={item.route}
-              onPress={() => router.push(item.route)}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                backgroundColor: colors.bg,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text
-                  style={{
-                    fontFamily: "Outfit_600SemiBold",
-                    fontSize: 16,
-                    color: colors.text,
-                    marginBottom: 2,
-                  }}
-                >
-                  {item.title}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontFamily: "Outfit_400Regular",
-                    fontSize: 13,
-                    color: colors.textMuted,
-                  }}
-                >
-                  {item.description}
-                </Text>
-              </View>
-              <Text
+        {/* Account Section */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={sectionLabel}>Account</Text>
+          <View style={card}>
+            {primaryItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.route}
+                onPress={() => router.push(item.route)}
                 style={{
-                  fontFamily: "Outfit_500Medium",
-                  fontSize: 18,
-                  color: colors.textMuted,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderTopColor: colors.bgDark,
                 }}
               >
-                ›
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View
-          style={{
-            height: 16,
-          }}
-        />
-
-        <View
-          style={{
-            paddingHorizontal: 16,
-            marginBottom: 4,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Outfit_500Medium",
-              fontSize: 12,
-              letterSpacing: 0.3,
-              textTransform: "uppercase",
-              color: colors.textMuted,
-            }}
-          >
-            More
-          </Text>
-        </View>
-
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: colors.bg,
-          }}
-        >
-          {secondaryItems.map((item, index) => (
-            <TouchableOpacity
-              key={item.route}
-              onPress={() => router.push(item.route)}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                borderTopWidth: index === 0 ? 0 : 1,
-                borderColor: colors.bgDark,
-              }}
-            >
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text
-                  style={{
-                    fontFamily: "Outfit_500Medium",
+                <View style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 11,
+                  backgroundColor: colors.bgDark,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 14,
+                }}>
+                  <FontAwesomeIcon icon={item.icon} size={16} color={item.iconColor} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontFamily: "Outfit_600SemiBold",
                     fontSize: 15,
                     color: colors.text,
-                    marginBottom: 2,
-                  }}
-                >
-                  {item.title}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={{
+                    marginBottom: 1,
+                  }}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontFamily: "Outfit_400Regular",
+                      fontSize: 12,
+                      color: colors.textMuted,
+                    }}
+                  >
+                    {item.description}
+                  </Text>
+                </View>
+                <FontAwesomeIcon icon={faChevronRight} size={11} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Preferences Section */}
+        <View style={{ marginBottom: 24 }}>
+          <Text style={sectionLabel}>Preferences</Text>
+          <View style={card}>
+            {secondaryItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.route}
+                onPress={() => router.push(item.route)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderTopColor: colors.bgDark,
+                }}
+              >
+                <View style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 11,
+                  backgroundColor: colors.bgDark,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 14,
+                }}>
+                  <FontAwesomeIcon icon={item.icon} size={16} color={item.iconColor} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontFamily: "Outfit_600SemiBold",
+                    fontSize: 15,
+                    color: colors.text,
+                    marginBottom: 1,
+                  }}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontFamily: "Outfit_400Regular",
+                      fontSize: 12,
+                      color: colors.textMuted,
+                    }}
+                  >
+                    {item.description}
+                  </Text>
+                </View>
+                <FontAwesomeIcon icon={faChevronRight} size={11} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Favourites Section */}
+        {user && (
+          <View style={{ marginBottom: 24 }}>
+            <Text style={sectionLabel}>Favourites</Text>
+            <View style={card}>
+              {loadingFavourites ? (
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  padding: 16,
+                }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={{
                     fontFamily: "Outfit_400Regular",
                     fontSize: 13,
                     color: colors.textMuted,
-                  }}
-                >
-                  {item.description}
-                </Text>
-              </View>
-              <Text
-                style={{
-                  fontFamily: "Outfit_500Medium",
-                  fontSize: 18,
-                  color: colors.textMuted,
-                }}
-              >
-                ›
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {/* Favourites section */}
-        {user && (
-          <View
-            style={{
-              marginTop: 24,
-              marginHorizontal: 16,
-              marginBottom: 24,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit_500Medium",
-                fontSize: 12,
-                color: colors.textMuted,
-                marginBottom: 8,
-              }}
-            >
-              Favourites
-            </Text>
-            <View
-              style={{
-                borderRadius: 16,
-                backgroundColor: colors.bg,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-              }}
-            >
-              {loadingFavourites ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 4,
-                  }}
-                >
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text
-                    style={{
-                      fontFamily: "Outfit_400Regular",
-                      fontSize: 13,
-                      color: colors.textMuted,
-                      marginLeft: 8,
-                    }}
-                  >
+                    marginLeft: 10,
+                  }}>
                     Loading favourites...
                   </Text>
                 </View>
               ) : favourites.length === 0 ? (
-                <Text
-                  style={{
-                    fontFamily: "Outfit_400Regular",
-                    fontSize: 13,
+                <View style={{ padding: 16 }}>
+                  <Text style={{
+                    fontFamily: "Outfit_500Medium",
+                    fontSize: 14,
                     color: colors.textMuted,
-                    paddingVertical: 4,
-                  }}
-                >
-                  You haven’t saved any favourite locations yet.
-                </Text>
+                  }}>
+                    No saved locations yet
+                  </Text>
+                  <Text style={{
+                    fontFamily: "Outfit_400Regular",
+                    fontSize: 12,
+                    color: colors.textDull,
+                    marginTop: 3,
+                  }}>
+                    Star a location during a ride to save it here.
+                  </Text>
+                </View>
               ) : (
                 favourites.map((fav, index) => (
                   <View
@@ -803,20 +763,29 @@ export default function SettingsHomeScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
                       borderTopWidth: index === 0 ? 0 : 1,
-                      borderColor: colors.bgDark,
+                      borderTopColor: colors.bgDark,
                     }}
                   >
-                    <View style={{ flex: 1, paddingRight: 12 }}>
-                      <Text
-                        style={{
-                          fontFamily: "Outfit_500Medium",
-                          fontSize: 14,
-                          color: colors.text,
-                        }}
-                      >
+                    <View style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      backgroundColor: colors.bgDark,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 12,
+                    }}>
+                      <FontAwesomeIcon icon={faLocationDot} size={15} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 14,
+                        color: colors.text,
+                      }}>
                         {fav.name}
                       </Text>
                       <Text
@@ -825,7 +794,7 @@ export default function SettingsHomeScreen() {
                           fontFamily: "Outfit_400Regular",
                           fontSize: 12,
                           color: colors.textMuted,
-                          marginTop: 2,
+                          marginTop: 1,
                         }}
                       >
                         {fav.full_address}
@@ -834,21 +803,16 @@ export default function SettingsHomeScreen() {
                     <TouchableOpacity
                       onPress={() => handleRemoveFavourite(fav)}
                       style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
+                        width: 30,
+                        height: 30,
                         borderRadius: 999,
                         backgroundColor: colors.bgDark,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginLeft: 8,
                       }}
                     >
-                      <Text
-                        style={{
-                          fontFamily: "Outfit_500Medium",
-                          fontSize: 12,
-                          color: colors.text,
-                        }}
-                      >
-                        Remove
-                      </Text>
+                      <FontAwesomeIcon icon={faXmark} size={13} color={colors.textMuted} />
                     </TouchableOpacity>
                   </View>
                 ))
@@ -856,30 +820,66 @@ export default function SettingsHomeScreen() {
             </View>
           </View>
         )}
-        </ScrollView>
-      </View>
+      </ScrollView>
+
+      {/* Save Bar */}
       {hasUnsavedChanges && (
-        <View
-          style={{
-            position: "absolute",
-            right: 16,
-            bottom: 24,
-          }}
-        >
-          <Btn
-            text={savingAll ? "Saving..." : "Save changes"}
+        <View style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          flexDirection: "row",
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 28,
+          backgroundColor: colors.bgDark,
+          borderTopWidth: 1,
+          borderTopColor: colors.bg,
+          gap: 10,
+        }}>
+          <TouchableOpacity
+            onPress={handleDiscardAll}
+            disabled={savingAll}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 14,
+              backgroundColor: colors.bg,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{
+              fontFamily: "Outfit_500Medium",
+              fontSize: 15,
+              color: colors.textMuted,
+            }}>
+              Discard
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleSaveAll}
             disabled={savingAll}
-            styleBtn={{
-              borderRadius: 999,
-              paddingHorizontal: 24,
-              paddingVertical: 10,
-              minWidth: 140,
+            style={{
+              flex: 2,
+              paddingVertical: 14,
+              borderRadius: 14,
+              backgroundColor: colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
+          >
+            <Text style={{
+              fontFamily: "Outfit_600SemiBold",
+              fontSize: 15,
+              color: "#ffffff",
+            }}>
+              {savingAll ? "Saving..." : "Save changes"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
   );
 }
-

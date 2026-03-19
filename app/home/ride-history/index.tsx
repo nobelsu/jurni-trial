@@ -202,25 +202,24 @@ export default function RideHistoryScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bgDark }}>
-      {/* Drawer button — same position and style as map page */}
-      <TouchableOpacity
-        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-        style={{
-          position: "absolute",
-          height: 50,
-          width: 50,
-          borderRadius: 100,
-          backgroundColor: colors.bgDark,
-          top: 60,
-          left: 20,
-          zIndex: 1000,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <FontAwesomeIcon icon={faBars} size={20} color={colors.text} />
-      </TouchableOpacity>
+    <SafeAreaView style={defaultStyles.container}>
+      {/* Header – aligned like Settings */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+          style={{
+            height: 40,
+            width: 40,
+            borderRadius: 12,
+            backgroundColor: colors.bg,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <FontAwesomeIcon icon={faBars} size={16} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={{ ...defaultStyles.title, marginLeft: 12 }}>Ride history</Text>
+      </View>
 
       <SectionList
         sections={sections}
@@ -228,11 +227,7 @@ export default function RideHistoryScreen() {
         contentContainerStyle={{ paddingBottom: 32 }}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={
-          <View style={{ paddingTop: 120, paddingHorizontal: 20, paddingBottom: 12 }}>
-            <Text style={{ ...defaultStyles.title, fontSize: 28, marginBottom: 16 }}>
-              Ride history
-            </Text>
-
+          <View style={{ paddingHorizontal: 0, paddingBottom: 12 }}>
             {/* Search bar */}
             <View
               style={{
@@ -304,7 +299,7 @@ export default function RideHistoryScreen() {
           </View>
         }
         renderSectionHeader={({ section: { title } }) => (
-          <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
+          <View style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 8 }}>
             <Text
               style={{
                 fontFamily: "Outfit_600SemiBold",
@@ -360,7 +355,7 @@ export default function RideHistoryScreen() {
               onPress={() => router.push(`/home/ride-history/ride-details/${item.id}`)}
               style={{
                 ...defaultStyles.mediumCard,
-                marginHorizontal: 20,
+                marginHorizontal: 0,
                 marginBottom: 10,
                 padding: 16,
               }}
@@ -463,6 +458,6 @@ export default function RideHistoryScreen() {
           </Swipeable>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }

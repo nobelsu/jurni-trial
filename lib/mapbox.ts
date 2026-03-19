@@ -159,7 +159,7 @@ export async function getPlaceLabelForCoords(coords: Position): Promise<PlaceLab
     }
 
     try {
-        const cached = await getCachedReverseGeocode(coords);
+        const cached = await getCachedReverseGeocode(coords, "searchbox");
         if (cached) {
             return cached;
         }
@@ -221,7 +221,7 @@ export async function getPlaceLabelForCoords(coords: Position): Promise<PlaceLab
         }
 
         const label = { name: name || full_address, full_address: full_address || name };
-        await setCachedReverseGeocode(coords, label);
+        await setCachedReverseGeocode(coords, label, "searchbox");
         return label;
     } catch (e) {
         console.log("Failed to fetch Searchbox place label for coords", e);

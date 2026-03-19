@@ -1,10 +1,12 @@
 import { BottomSheetScrollView, useBottomSheet } from "@gorhom/bottom-sheet";
-import { Dimensions, Switch, Text, TouchableOpacity, useColorScheme, View } from "react-native";
+import React from "react";
+import { Dimensions, Modal, Switch, Text, TouchableOpacity, useColorScheme, View } from "react-native";
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import StyleDefault from "../constants/DefaultStyles";
 import { Colors } from "../constants/Colors";
 import Tag from "./Tag";
-import { faAngleRight } from "@fortawesome/free-solid-svg-icons/faAngleRight";
+import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons/faEllipsisVertical";
+import { faTimes } from "@fortawesome/free-solid-svg-icons/faTimes";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { ScrollView } from "react-native-gesture-handler";
 import RideComponent from "./Ride";
@@ -23,9 +25,29 @@ interface SelectRideProps {
     setSilentOnly: React.Dispatch<React.SetStateAction<boolean>>,
     pickupCoords: Position,
     setPickupInput: React.Dispatch<React.SetStateAction<string>>,
+    femaleDriverPreferred: boolean,
+    setFemaleDriverPreferred: React.Dispatch<React.SetStateAction<boolean>>,
+    optionsVisible: boolean,
+    setOptionsVisible: (visible: boolean) => void,
 }
 
-export default function SelectRide({selectedId, setSelected, nextRef, mapRef, setPhase, distance, duration, silentOnly, setSilentOnly, pickupCoords, setPickupInput} : SelectRideProps) {
+export default function SelectRide({
+    selectedId,
+    setSelected,
+    nextRef,
+    mapRef,
+    setPhase,
+    distance,
+    duration,
+    silentOnly,
+    setSilentOnly,
+    pickupCoords,
+    setPickupInput,
+    femaleDriverPreferred,
+    setFemaleDriverPreferred,
+    optionsVisible,
+    setOptionsVisible,
+}: SelectRideProps) {
     const { animatedPosition, animatedIndex, snapToIndex, forceClose } = useBottomSheet();
     const opacity = useSharedValue(0);
 
@@ -63,41 +85,152 @@ export default function SelectRide({selectedId, setSelected, nextRef, mapRef, se
             }}>
                 <View style={{width: "100%", paddingHorizontal: 20, justifyContent: "center", alignItems: "center"}}>
                     <Text style={{...defaultStyles.title, marginBottom: 15,}}>Select a <Text style={{color: Colors[colorScheme ?? "light"].primary}}>ride</Text></Text>
-                    <View
-                        style={{
-                            width: "100%",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingVertical: 8,
-                            marginBottom: 8,
-                        }}
-                    >
-                        <View style={{ flex: 1 }}>
-                            <Text style={{ ...defaultStyles.title, fontSize: 14 }}>
-                                Quiet rides
-                            </Text>
-                            <Text style={{ ...defaultStyles.subtitle, fontSize: 12 }}>
-                                Prefer less conversation during trips
-                            </Text>
-                        </View>
-                        <Switch
-                            value={silentOnly}
-                            onValueChange={setSilentOnly}
-                            trackColor={{
-                                false: Colors[colorScheme ?? "light"].bg,
-                                true: Colors[colorScheme ?? "light"].primary,
-                            }}
-                            thumbColor={Colors[colorScheme ?? "light"].bgDark}
-                        />
-                    </View>
-                    <BottomSheetScrollView style={{width: "100%", height: 329}}>
+                    <BottomSheetScrollView style={{width: "100%", height: 391}}> 
                         {rideIds.map((id) => {
                             return (<RideComponent id={id} key={`${id}`} selected={selectedId} setSelected={setSelected} setPhase={setPhase} nextRef={nextRef} mapRef={mapRef} distance={distance} duration={duration} pickupCoords={pickupCoords} setPickupInput={setPickupInput}/>)
                         })}
                     </BottomSheetScrollView>
                 </View>
-            </View>              
+            </View>
+            <Modal
+                visible={optionsVisible}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setOptionsVisible(false)}
+            >
+                <View
+                    style={{
+                        flex: 1,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        justifyContent: "flex-end",
+                    }}
+                >
+                    <TouchableOpacity
+                        style={{ flex: 1 }}
+                        activeOpacity={1}
+                        onPress={() => setOptionsVisible(false)}
+                    />
+                    <View
+                        style={{
+                            backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                            borderTopLeftRadius: 24,
+                            borderTopRightRadius: 24,
+                            paddingHorizontal: 20,
+                            paddingTop: 16,
+                            paddingBottom: 32,
+                        }}
+                    >
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                marginBottom: 16,
+                            }}
+                        >
+                            <Text style={{ ...defaultStyles.title, flex: 1 }}>
+                                Ride options
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setOptionsVisible(false)}
+                                style={{
+                                    height: 32,
+                                    width: 32,
+                                    borderRadius: 16,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                }}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                                <FontAwesomeIcon
+                                    icon={faTimes}
+                                    size={14}
+                                    color={Colors[colorScheme ?? "light"].text}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        <View
+                            style={{
+                                borderRadius: 20,
+                                backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                paddingHorizontal: 16,
+                                paddingVertical: 14,
+                                marginBottom: 12,
+                            }}
+                        >
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <View style={{ flex: 1, paddingRight: 12 }}>
+                                    <Text style={{ ...defaultStyles.title, fontSize: 15 }}>
+                                        Quiet rides
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            ...defaultStyles.subtitle,
+                                            fontSize: 12,
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        Prefer less conversation during trips
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={silentOnly}
+                                    onValueChange={setSilentOnly}
+                                    trackColor={{
+                                        false: Colors[colorScheme ?? "light"].bgDark,
+                                        true: Colors[colorScheme ?? "light"].primary,
+                                    }}
+                                    thumbColor={Colors[colorScheme ?? "light"].bgDark}
+                                />
+                            </View>
+                        </View>
+                        <View
+                            style={{
+                                borderRadius: 20,
+                                backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                paddingHorizontal: 16,
+                                paddingVertical: 14,
+                            }}
+                        >
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <View style={{ flex: 1, paddingRight: 12 }}>
+                                    <Text style={{ ...defaultStyles.title, fontSize: 15 }}>
+                                        Female driver
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            ...defaultStyles.subtitle,
+                                            fontSize: 12,
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        Prefer matching with a female driver when available
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={femaleDriverPreferred}
+                                    onValueChange={setFemaleDriverPreferred}
+                                    trackColor={{
+                                        false: Colors[colorScheme ?? "light"].bgDark,
+                                        true: Colors[colorScheme ?? "light"].primary,
+                                    }}
+                                    thumbColor={Colors[colorScheme ?? "light"].bgDark}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </Animated.View>
     )
 }
