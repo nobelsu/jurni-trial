@@ -154,8 +154,8 @@ export default function VerificationSettingsScreen() {
               paddingHorizontal: 24,
             }}>
               {verified
-                ? "Your identity has been confirmed. You can book rides and access all features."
-                : "Verify your identity to unlock ride booking and confirm your account."}
+                ? "Your identity has been confirmed. You can request rides with a female driver and access all features."
+                : "Verify your identity to request rides with a female driver and confirm your account."}
             </Text>
           </View>
 
@@ -235,7 +235,7 @@ export default function VerificationSettingsScreen() {
                 What you'll unlock
               </Text>
               {[
-                "Book and confirm rides",
+                "Request rides with a female driver",
                 "Full account access",
                 "Priority support",
               ].map((item, index) => (

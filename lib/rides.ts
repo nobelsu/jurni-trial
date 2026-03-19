@@ -18,6 +18,7 @@ export interface Ride {
   destination: string | null;
   pickup_geopoint: FirebaseFirestoreTypes.GeoPoint | null;
   destination_geopoint: FirebaseFirestoreTypes.GeoPoint | null;
+  female_driver_preferred?: boolean;
   driver_rating?: number;
   driver_rated_at?: FirebaseFirestoreTypes.Timestamp | null;
 }

@@ -26,6 +26,7 @@ interface ConfirmPickupProps {
     pickupCoords: Position,
     destCoords: Position,
     silentOnly: boolean,
+    femaleDriverPreferred: boolean,
     verified: boolean,
     processing: boolean,
 }
@@ -45,6 +46,7 @@ export default function ConfirmPickup({
     pickupCoords,
     destCoords,
     silentOnly,
+    femaleDriverPreferred,
     verified,
     processing,
 }: ConfirmPickupProps) {
@@ -63,8 +65,8 @@ export default function ConfirmPickup({
             setPayError("Please sign in to confirm and pay.");
             return;
         }
-        if (!verified) {
-            setPayError("Please verify your identity in settings before requesting a ride.");
+        if (femaleDriverPreferred && !verified) {
+            setPayError("Please verify your identity in settings before requesting a female driver.");
             forceClose();
             router.push("/home/settings/verification");
             return;
@@ -109,6 +111,7 @@ export default function ConfirmPickup({
                 created_at: timestamp,
                 driver_id: DUMMY_DRIVER_ID,
                 ended_at: null,
+                female_driver_preferred: !!femaleDriverPreferred,
                 price,
                 rider_id: riderId,
                 started_at: timestamp,

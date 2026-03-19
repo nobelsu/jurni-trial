@@ -137,7 +137,9 @@ export default function SettingsHomeScreen() {
     !!draftSettings &&
     ((draftSettings.ride_updates_push !== false) !==
       (settings.ride_updates_push !== false) ||
-      !!draftSettings.silent_only !== !!settings.silent_only);
+      !!draftSettings.silent_only !== !!settings.silent_only ||
+      !!draftSettings.female_driver_preferred !==
+        !!settings.female_driver_preferred);
 
   const hasUnsavedChanges = hasUnsavedName || hasUnsavedQuickSettings;
 
@@ -192,6 +194,7 @@ export default function SettingsHomeScreen() {
         const updated = await updateUserSettings(user.uid, {
           ride_updates_push: draftSettings.ride_updates_push,
           silent_only: draftSettings.silent_only,
+          female_driver_preferred: draftSettings.female_driver_preferred,
         });
         setSettings(updated);
         setDraftSettings(updated);
@@ -221,7 +224,7 @@ export default function SettingsHomeScreen() {
   const primaryItems = [
     {
       title: "Identity verification",
-      description: verified ? "Your account is verified" : "Verify your identity to book rides",
+      description: verified ? "Your account is verified" : "Verify your identity to request a female driver",
       route: "/home/settings/verification",
       icon: faShieldHalved,
       iconColor: "#f59e0b",
@@ -235,7 +238,7 @@ export default function SettingsHomeScreen() {
     },
     {
       title: "Ride preferences",
-      description: "Default ride type, quiet rides",
+      description: "Default ride type, quiet rides, female driver",
       route: "/home/settings/ride",
       icon: faCar,
       iconColor: "#0ea5e9",
@@ -598,6 +601,46 @@ export default function SettingsHomeScreen() {
                       }
                       onValueChange={(value) =>
                         updateDraftSettings({ silent_only: value })
+                      }
+                      trackColor={{ false: colors.bgDark, true: colors.primary }}
+                      thumbColor={isDark ? colors.textMuted : "#ffffff"}
+                    />
+                  </View>
+
+                  <View style={{ height: 1, backgroundColor: colors.bgDark, marginVertical: 10 }} />
+
+                  {/* Female driver Toggle */}
+                  <View style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 2,
+                  }}>
+                    <View style={{ flex: 1, paddingRight: 16 }}>
+                      <Text style={{
+                        fontFamily: "Outfit_500Medium",
+                        fontSize: 15,
+                        color: colors.text,
+                      }}>
+                        Female driver
+                      </Text>
+                      <Text style={{
+                        fontFamily: "Outfit_400Regular",
+                        fontSize: 12,
+                        color: colors.textMuted,
+                        marginTop: 2,
+                      }}>
+                        Prefer matching with a female driver when available
+                      </Text>
+                    </View>
+                    <Switch
+                      value={
+                        draftSettings
+                          ? !!draftSettings.female_driver_preferred
+                          : !!settings.female_driver_preferred
+                      }
+                      onValueChange={(value) =>
+                        updateDraftSettings({ female_driver_preferred: value })
                       }
                       trackColor={{ false: colors.bgDark, true: colors.primary }}
                       thumbColor={isDark ? colors.textMuted : "#ffffff"}

@@ -25,6 +25,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faCar } from "@fortawesome/free-solid-svg-icons/faCar";
 import { faVanShuttle } from "@fortawesome/free-solid-svg-icons/faVanShuttle";
 import { faComments } from "@fortawesome/free-solid-svg-icons/faComments";
+import { faVenusMars } from "@fortawesome/free-solid-svg-icons/faVenusMars";
 
 function settingsDirty(
   draft: UserSettings | null,
@@ -33,7 +34,8 @@ function settingsDirty(
   if (!draft || !saved) return false;
   return (
     draft.default_ride_type !== saved.default_ride_type ||
-    !!draft.silent_only !== !!saved.silent_only
+    !!draft.silent_only !== !!saved.silent_only ||
+    !!draft.female_driver_preferred !== !!saved.female_driver_preferred
   );
 }
 
@@ -115,6 +117,7 @@ export default function RideSettingsScreen() {
       const updated = await updateUserSettings(user.uid, {
         default_ride_type: draft.default_ride_type,
         silent_only: draft.silent_only,
+        female_driver_preferred: draft.female_driver_preferred,
       });
       setSavedSettings(updated);
       setDraft(updated);
@@ -311,6 +314,45 @@ export default function RideSettingsScreen() {
               <Switch
                 value={!!draft.silent_only}
                 onValueChange={(value) => updateDraft({ silent_only: value })}
+                trackColor={{ false: colors.bgDark, true: colors.primary }}
+                thumbColor={isDark ? colors.textMuted : "#ffffff"}
+              />
+            </View>
+          </View>
+
+          <View style={{ ...card, paddingHorizontal: 16, paddingVertical: 14, marginTop: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                backgroundColor: colors.bgDark,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 14,
+              }}>
+                <FontAwesomeIcon icon={faVenusMars} size={16} color={colors.textMuted} />
+              </View>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{
+                  fontFamily: "Outfit_500Medium",
+                  fontSize: 15,
+                  color: colors.text,
+                }}>
+                  Female driver
+                </Text>
+                <Text style={{
+                  fontFamily: "Outfit_400Regular",
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                }}>
+                  Prefer matching with a female driver when available
+                </Text>
+              </View>
+              <Switch
+                value={!!draft.female_driver_preferred}
+                onValueChange={(value) => updateDraft({ female_driver_preferred: value })}
                 trackColor={{ false: colors.bgDark, true: colors.primary }}
                 thumbColor={isDark ? colors.textMuted : "#ffffff"}
               />

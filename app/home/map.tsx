@@ -705,6 +705,7 @@ export default function MapScreen() {
                     pickupCoords={pickupCoords}
                     destCoords={destCoords}
                     silentOnly={silentOnly}
+                    femaleDriverPreferred={femaleDriverPreferred}
                     verified={verified}
                     processing={processing}
                 />
