@@ -19,7 +19,7 @@ import { Colors } from "../../../constants/Colors";
 import StyleDefault from "../../../constants/DefaultStyles";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type { Ride } from "../../../lib/rides";
-import { getRideTypeDisplayName } from "../../../lib/rides";
+import { getRideTypeDisplayName, parseRouteCoordinates } from "../../../lib/rides";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 import { faCircleDot } from "@fortawesome/free-solid-svg-icons/faCircleDot";
@@ -116,7 +116,10 @@ export default function RideHistoryScreen() {
               type_id: d.type_id ?? "basic",
               price: typeof d.price === "number" ? d.price : 0,
               status: d.status ?? "",
-              driver_id: d.driver_id ?? "",
+              driver_id:
+                typeof d.driver_id === "string" && d.driver_id.length > 0
+                  ? d.driver_id
+                  : null,
               created_at: d.created_at ?? null,
               started_at: d.started_at ?? null,
               accepted_at: d.accepted_at ?? null,
@@ -125,6 +128,7 @@ export default function RideHistoryScreen() {
               destination: d.destination ?? null,
               pickup_geopoint: d.pickup_geopoint ?? null,
               destination_geopoint: d.destination_geopoint ?? null,
+              route_coordinates: parseRouteCoordinates(d.route_coordinates),
             };
           });
           setRides(list);

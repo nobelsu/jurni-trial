@@ -1,4 +1,4 @@
-import { View, Text, useColorScheme, TouchableOpacity, } from 'react-native';
+import { View, Text, useColorScheme, TouchableOpacity, Modal } from 'react-native';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
 import { BottomSheetFooter, } from '@gorhom/bottom-sheet';
@@ -35,6 +35,7 @@ import { getSilentOnlyDefault, getUserSettings, getUserVerificationStatus, updat
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 import { faApple } from '@fortawesome/free-brands-svg-icons/faApple';
 import { faEllipsisVertical } from '@fortawesome/free-solid-svg-icons/faEllipsisVertical';
+import FindingDriver from '../../components/FindingDriver';
 
 export default function MapScreen() {
     setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -51,7 +52,6 @@ export default function MapScreen() {
     const snapPoints1 = useMemo(() => [320, 600], []);
     const snapPoints1List = [120, 390]
     const snapPoints2 = useMemo(() => [260], []);
-    const snapPoints3 = useMemo(() => [500, "100%"], []);
     const navigation = useNavigation();
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -296,9 +296,6 @@ export default function MapScreen() {
                 setFemaleDriverPreferred(false);
                 setVerified(false);
             }
-            // bottomSheetRef.current?.snapToIndex(0);
-            // bottomSheetRef1.current?.forceClose();
-            // bottomSheetRef2.current?.forceClose();
         }, [])
     );
 
@@ -352,16 +349,20 @@ export default function MapScreen() {
 
     useEffect(() => {
         if (phase === 1) {
-            bottomSheetRef.current?.close();
-            bottomSheetRef2.current?.close();
+            bottomSheetRef.current?.forceClose();
+            bottomSheetRef2.current?.forceClose();
             bottomSheetRef1.current?.snapToIndex(0);
         } else if (phase === 2) {
-            bottomSheetRef.current?.close();
-            bottomSheetRef1.current?.close();
+            bottomSheetRef.current?.forceClose();
+            bottomSheetRef1.current?.forceClose();
             bottomSheetRef2.current?.snapToIndex(0);
+        } else if (phase === 3) {
+            bottomSheetRef.current?.forceClose();
+            bottomSheetRef1.current?.forceClose();
+            bottomSheetRef2.current?.forceClose();
         } else if (phase === 0) {
-            bottomSheetRef1.current?.close();
-            bottomSheetRef2.current?.close();
+            bottomSheetRef1.current?.forceClose();
+            bottomSheetRef2.current?.forceClose();
             bottomSheetRef.current?.snapToIndex(0);
         }
     }, [phase]);
@@ -704,12 +705,24 @@ export default function MapScreen() {
                     typeId={selected}
                     pickupCoords={pickupCoords}
                     destCoords={destCoords}
+                    distance={distance}
+                    duration={duration}
                     silentOnly={silentOnly}
                     femaleDriverPreferred={femaleDriverPreferred}
                     verified={verified}
                     processing={processing}
                 />
             </BottomSheet>
+            <Modal
+                animationType="slide"
+                transparent
+                visible={phase === 3}
+                onRequestClose={() => setPhase(2)}
+            >
+                <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.2)" }}>
+                    <FindingDriver onCancel={() => setPhase(2)} />
+                </View>
+            </Modal>
         </GestureHandlerRootView>
     )
 }

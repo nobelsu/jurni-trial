@@ -25,13 +25,13 @@ interface ConfirmPickupProps {
     typeId: RideTypeId,
     pickupCoords: Position,
     destCoords: Position,
+    distance: number,
+    duration: number,
     silentOnly: boolean,
     femaleDriverPreferred: boolean,
     verified: boolean,
     processing: boolean,
 }
-
-const DUMMY_DRIVER_ID = "dummy_driver_1";
 
 export default function ConfirmPickup({
     pickupInput,
@@ -45,6 +45,8 @@ export default function ConfirmPickup({
     typeId,
     pickupCoords,
     destCoords,
+    distance,
+    duration,
     silentOnly,
     femaleDriverPreferred,
     verified,
@@ -107,20 +109,22 @@ export default function ConfirmPickup({
                 : null;
 
             await firestore().collection("rides").add({
-                accepted_at: timestamp,
+                accepted_at: null,
                 created_at: timestamp,
-                driver_id: DUMMY_DRIVER_ID,
+                driver_id: null,
                 ended_at: null,
                 female_driver_preferred: !!femaleDriverPreferred,
                 price,
                 rider_id: riderId,
-                started_at: timestamp,
-                status: "RIDING",
+                started_at: null,
+                status: "PENDING",
                 type_id: typeId,
                 pickup: pickupInput || null,
                 destination: destInput || null,
                 pickup_geopoint,
                 destination_geopoint,
+                distance_km: distance,
+                estimated_time_required_minutes: duration,
                 silent_only: !!silentOnly,
             });
 
@@ -158,7 +162,6 @@ export default function ConfirmPickup({
                 console.log("Failed to update search history from ride", e);
             }
             setPhase(3);
-            forceClose();
         } catch (e) {
             setPayError(e instanceof Error ? e.message : "Failed to create ride. Please try again.");
         } finally {

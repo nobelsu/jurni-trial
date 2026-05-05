@@ -15,6 +15,8 @@ import { useState } from 'react';
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
 import type { UserSettings, UserGender } from "../../lib/users";
+import type { DriverGender } from "../../lib/registerDriver";
+import { saveInitialDriverDocument } from "../../lib/registerDriver";
 
 export default function ConfirmPasswordScreen() {
     const router = useRouter();
@@ -57,6 +59,7 @@ export default function ConfirmPasswordScreen() {
                 rawGender === "prefer_not_to_say"
                     ? rawGender
                     : "prefer_not_to_say";
+            const driverGender: DriverGender = gender;
 
             await firestore().collection("users").doc(user.uid).set({
                 verified: false,
@@ -70,6 +73,11 @@ export default function ConfirmPasswordScreen() {
                     rides_taken: 0,
                 },
                 settings: initialSettings,
+            });
+            await saveInitialDriverDocument(user.uid, {
+                name: params.name,
+                gender: driverGender,
+                email: params.email,
             });
 
             router.navigate('home/map');

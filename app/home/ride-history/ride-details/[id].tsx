@@ -6,7 +6,7 @@ import { Colors } from "../../../../constants/Colors";
 import StyleDefault from "../../../../constants/DefaultStyles";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type { Ride } from "../../../../lib/rides";
-import { getRideTypeDisplayName } from "../../../../lib/rides";
+import { getRideTypeDisplayName, parseRouteCoordinates } from "../../../../lib/rides";
 import { MAPBOX_ACCESS_TOKEN, obtainDirections, Position, DrivingDirectionsResult } from "../../../../lib/mapbox";
 import { MapView, Camera, setAccessToken, MarkerView } from "@rnmapbox/maps";
 import Route from "../../../../components/Route";
@@ -469,7 +469,7 @@ export default function RideDetailsScreen() {
       .doc(id)
       .onSnapshot(
         (snapshot) => {
-          if (!snapshot.exists) {
+          if (!snapshot.exists()) {
             setError("Ride not found");
             setRide(null);
           } else {
@@ -480,7 +480,10 @@ export default function RideDetailsScreen() {
               type_id: d.type_id ?? "basic",
               price: typeof d.price === "number" ? d.price : 0,
               status: d.status ?? "",
-              driver_id: d.driver_id ?? "",
+              driver_id:
+                typeof d.driver_id === "string" && d.driver_id.length > 0
+                  ? d.driver_id
+                  : null,
               created_at: d.created_at ?? null,
               started_at: d.started_at ?? null,
               accepted_at: d.accepted_at ?? null,
@@ -489,6 +492,7 @@ export default function RideDetailsScreen() {
               destination: d.destination ?? null,
               pickup_geopoint: d.pickup_geopoint ?? null,
               destination_geopoint: d.destination_geopoint ?? null,
+              route_coordinates: parseRouteCoordinates(d.route_coordinates),
             });
             if (typeof d.driver_rating === "number") {
               setDriverRating(d.driver_rating);
@@ -506,7 +510,10 @@ export default function RideDetailsScreen() {
     return () => unsubscribe();
   }, [id]);
 
-  const canShowRoute =
+  const hasStoredRoute =
+    !!ride?.route_coordinates && ride.route_coordinates.length > 1;
+
+  const hasEndpointGeopoints =
     !!ride?.pickup_geopoint &&
     !!ride?.destination_geopoint &&
     typeof ride.pickup_geopoint.latitude === "number" &&
@@ -515,11 +522,28 @@ export default function RideDetailsScreen() {
     typeof ride.destination_geopoint.longitude === "number";
 
   useEffect(() => {
-    if (!canShowRoute || !ride?.pickup_geopoint || !ride?.destination_geopoint) {
+    if (!ride) {
       setRouteCoords([]);
       setRouteError(null);
       return;
     }
+
+    if (hasStoredRoute && ride.route_coordinates) {
+      setRouteCoords(ride.route_coordinates);
+      setRouteError(null);
+      return;
+    }
+
+    if (
+      !hasEndpointGeopoints ||
+      !ride.pickup_geopoint ||
+      !ride.destination_geopoint
+    ) {
+      setRouteCoords([]);
+      setRouteError(null);
+      return;
+    }
+
     const pickupPos: Position = [
       ride.pickup_geopoint.longitude,
       ride.pickup_geopoint.latitude,
@@ -544,10 +568,17 @@ export default function RideDetailsScreen() {
         setRouteCoords([]);
         setRouteError("Failed to load route for this trip.");
       });
-  }, [canShowRoute, ride?.pickup_geopoint, ride?.destination_geopoint]);
+  }, [
+    ride?.id,
+    ride?.route_coordinates,
+    hasStoredRoute,
+    hasEndpointGeopoints,
+    ride?.pickup_geopoint,
+    ride?.destination_geopoint,
+  ]);
 
   const bounds = useMemo(() => {
-    if (!canShowRoute || routeCoords.length === 0) return null;
+    if (routeCoords.length === 0) return null;
     // convert [lng, lat] -> [lat, lng] for computeBBox
     const latLngCoords: LatLng[] = routeCoords.map(([lng, lat]) => [lat, lng]);
     const bbox = computeBBox(latLngCoords);
@@ -560,7 +591,7 @@ export default function RideDetailsScreen() {
     const spanLat = bbox.maxLat - bbox.minLat;
     const spanLng = bbox.maxLng - bbox.minLng;
     return { ne, sw, center, spanLat, spanLng };
-  }, [canShowRoute, routeCoords]);
+  }, [routeCoords]);
 
   const cameraBounds = useMemo(() => {
     if (!bounds) return undefined;
@@ -646,7 +677,7 @@ export default function RideDetailsScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bgDark }}>
       <View style={{ flex: 1, overflow: "hidden" }}>
-        {canShowRoute && bounds && routeCoords.length > 0 && (
+        {bounds && routeCoords.length > 0 && (
           <MapView
             style={{ flex: 1 }}
             styleURL={colorScheme == "light" ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11'}

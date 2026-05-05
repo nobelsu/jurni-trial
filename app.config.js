@@ -1,4 +1,4 @@
-export default {
+const expoConfig = {
   expo: {
     name: "Jurni",
     slug: "jurni-temp",
@@ -50,7 +50,12 @@ export default {
         {
           ios: {
             useFrameworks: "static",
-            forceStaticLinking: ["RNFBApp"]
+            forceStaticLinking: [
+              "RNFBApp",
+              "RNFBAuth",
+              "RNFBFirestore",
+              "RNFBFunctions",
+            ],
           }
         }
       ],
@@ -76,3 +81,5 @@ export default {
     }
   }
 };
+
+export default expoConfig;

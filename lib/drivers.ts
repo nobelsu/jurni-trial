@@ -22,7 +22,7 @@ export async function setOrUpdateRideRating(
 
   await db.runTransaction(async (tx) => {
     const rideSnap = await tx.get(rideRef);
-    if (!rideSnap.exists) {
+    if (!rideSnap.exists()) {
       throw new Error("Ride not found");
     }
 
@@ -47,7 +47,7 @@ export async function setOrUpdateRideRating(
     let rating_count = 0;
     let rating_sum = 0;
 
-    if (driverSnap.exists) {
+    if (driverSnap.exists()) {
       const d = driverSnap.data() as Partial<DriverAggregate>;
       rating_count = typeof d.rating_count === "number" ? d.rating_count : 0;
       rating_sum = typeof d.rating_sum === "number" ? d.rating_sum : 0;
