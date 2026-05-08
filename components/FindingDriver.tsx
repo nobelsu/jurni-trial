@@ -1,5 +1,6 @@
 import {
   Dimensions,
+  StyleSheet,
   Text,
   TouchableOpacity,
   useColorScheme,
@@ -16,15 +17,15 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Colors } from "../constants/Colors";
+import StyleDefault from "../constants/DefaultStyles";
 
 const STATUS_MESSAGES = [
-  "Scanning your area…",
-  "Notifying nearby drivers…",
+  "Scanning area…",
+  "Notifying drivers…",
   "Almost there…",
 ];
 
@@ -82,12 +83,11 @@ export default function FindingDriver({ onCancel }: FindingDriverProps) {
   const colorScheme = useColorScheme();
   const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const theme = Colors[themeKey];
+  const defaultStyles = StyleDefault({ colorScheme });
   const windowWidth = Dimensions.get("window").width;
-  const trackWidth = windowWidth - 40;
 
   const [msgIndex, setMsgIndex] = useState(0);
   const lineOpacity = useSharedValue(1);
-  const shimmerX = useSharedValue(-100);
   const breathe = useSharedValue(0);
 
   const bumpMessage = useCallback(() => {
@@ -104,17 +104,6 @@ export default function FindingDriver({ onCancel }: FindingDriverProps) {
       true
     );
   }, [breathe]);
-
-  useEffect(() => {
-    shimmerX.value = withRepeat(
-      withTiming(trackWidth + 80, {
-        duration: 1800,
-        easing: Easing.linear,
-      }),
-      -1,
-      false
-    );
-  }, [shimmerX, trackWidth]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -142,59 +131,83 @@ export default function FindingDriver({ onCancel }: FindingDriverProps) {
     opacity: lineOpacity.value,
   }));
 
-  const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmerX.value }],
-  }));
-
-  const reactId = useId();
-  const gradientId = `findingDriverShimmer_${reactId.replace(/[^a-zA-Z0-9]/g, "")}`;
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        sheet: {
+          paddingHorizontal: 20,
+          paddingTop: 10,
+          paddingBottom: 28,
+          backgroundColor: theme.bgDark,
+          alignItems: "center",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+        },
+        handle: {
+          width: 44,
+          height: 5,
+          borderRadius: 999,
+          backgroundColor: theme.textDull,
+          opacity: 0.4,
+          marginBottom: 16,
+        },
+        meta: {
+          fontFamily: "Outfit_500Medium",
+          fontSize: 11,
+          letterSpacing: 2.2,
+          color: theme.textDull,
+          textTransform: "uppercase",
+          marginBottom: 6,
+        },
+        title: {
+          ...defaultStyles.title,
+          textAlign: "center",
+          marginBottom: 18,
+        },
+        beaconWrap: {
+          width: 128,
+          height: 128,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 16,
+        },
+        status: {
+          fontFamily: "Outfit_400Regular",
+          fontSize: 15,
+          color: theme.textMuted,
+          textAlign: "center",
+          minHeight: 22,
+          marginBottom: 16,
+        },
+        cancelButton: {
+          width: "100%",
+          height: 50,
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.bg,
+        },
+        cancelText: {
+          fontFamily: "Outfit_500Medium",
+          fontSize: 16,
+          color: theme.text,
+        },
+      }),
+    [defaultStyles.title, theme.bg, theme.bgDark, theme.text, theme.textDull, theme.textMuted]
+  );
 
   return (
     <View>
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingTop: 16,
-          paddingBottom: 22,
-          backgroundColor: theme.bgDark,
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "Outfit_500Medium",
-            fontSize: 11,
-            letterSpacing: 3.2,
-            color: theme.textDull,
-            textTransform: "uppercase",
-            marginBottom: 6,
-          }}
-        >
+      <View style={styles.sheet}>
+        <Text style={styles.meta}>
           Searching
         </Text>
 
-        <Text
-          style={{
-            fontFamily: "Outfit_600SemiBold",
-            fontSize: 24,
-            letterSpacing: -0.4,
-            color: theme.text,
-            marginBottom: 18,
-            textAlign: "center",
-          }}
-        >
+        <Text style={styles.title}>
           Finding your driver
         </Text>
 
-        <View
-          style={{
-            width: 140,
-            height: 140,
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 18,
-          }}
-        >
+        <View style={styles.beaconWrap}>
           <PulseRing delayMs={0} borderColor={theme.primary} />
           <PulseRing delayMs={800} borderColor={theme.primary} />
           <PulseRing delayMs={1600} borderColor={theme.primary} />
@@ -210,9 +223,9 @@ export default function FindingDriver({ onCancel }: FindingDriverProps) {
                 justifyContent: "center",
                 shadowColor: theme.primary,
                 shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.55,
-                shadowRadius: 12,
-                elevation: 8,
+                shadowOpacity: 0.35,
+                shadowRadius: 8,
+                elevation: 5,
               },
               beaconStyle,
             ]}
@@ -231,101 +244,21 @@ export default function FindingDriver({ onCancel }: FindingDriverProps) {
 
         <Animated.Text
           style={[
-            {
-              fontFamily: "Outfit_400Regular",
-              fontSize: 15,
-              color: theme.textMuted,
-              textAlign: "center",
-              minHeight: 22,
-              marginBottom: 16,
-            },
+            styles.status,
             statusLineStyle,
           ]}
         >
           {STATUS_MESSAGES[msgIndex]}
         </Animated.Text>
 
-        <View
-          style={{
-            width: "100%",
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: theme.bg,
-            overflow: "hidden",
-            marginBottom: 18,
-          }}
-        >
-          <Animated.View
-            style={[
-              {
-                position: "absolute",
-                left: 0,
-                top: 0,
-                height: 4,
-                width: 140,
-              },
-              shimmerStyle,
-            ]}
-          >
-            <Svg width={140} height={4}>
-              <Defs>
-                <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-                  <Stop
-                    offset="0"
-                    stopColor={theme.primary}
-                    stopOpacity={0}
-                  />
-                  <Stop
-                    offset="0.45"
-                    stopColor={theme.primary}
-                    stopOpacity={0.95}
-                  />
-                  <Stop
-                    offset="1"
-                    stopColor={theme.primary}
-                    stopOpacity={0}
-                  />
-                </LinearGradient>
-              </Defs>
-              <Rect
-                width={140}
-                height={4}
-                rx={2}
-                fill={`url(#${gradientId})`}
-              />
-            </Svg>
-          </Animated.View>
-        </View>
-
-        <Text
-          style={{
-            fontFamily: "Outfit_400Regular",
-            fontSize: 13,
-            color: theme.textDull,
-            textAlign: "center",
-            lineHeight: 18,
-            marginBottom: 14,
-          }}
-        >
-          Hang tight — we're matching you with nearby drivers. This usually
-          takes less than a minute.
-        </Text>
-
         <TouchableOpacity
           onPress={onCancel}
           hitSlop={{ top: 12, bottom: 12, left: 24, right: 24 }}
           accessibilityRole="button"
           accessibilityLabel="Cancel driver search"
+          style={styles.cancelButton}
         >
-          <Text
-            style={{
-              fontFamily: "Outfit_500Medium",
-              fontSize: 15,
-              color: theme.textMuted,
-              textDecorationLine: "underline",
-              textDecorationColor: theme.textMuted,
-            }}
-          >
+          <Text style={styles.cancelText}>
             Cancel
           </Text>
         </TouchableOpacity>

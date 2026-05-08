@@ -1,4 +1,4 @@
-import { View, Text, useColorScheme, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, useColorScheme, TouchableOpacity } from 'react-native';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
 import { BottomSheetFooter, } from '@gorhom/bottom-sheet';
@@ -49,11 +49,13 @@ export default function MapScreen() {
     const bottomSheetRef = useRef<BottomSheet>(null);
     const bottomSheetRef1 = useRef<BottomSheet>(null);
     const bottomSheetRef2 = useRef<BottomSheet>(null);
+    const bottomSheetRef3 = useRef<BottomSheet>(null);
 
     const snapPoints = useMemo(() =>  [260, "100%"], []);
     const snapPoints1 = useMemo(() => [320, 600], []);
     const snapPoints1List = [120, 390]
     const snapPoints2 = useMemo(() => [260], []);
+    const snapPoints3 = useMemo(() => [360], []);
     const navigation = useNavigation();
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -382,23 +384,26 @@ export default function MapScreen() {
     }, [phase]);
 
     useEffect(() => {
-        console.log("phase", phase);
         if (phase === 1) {
-            bottomSheetRef.current?.forceClose();
-            bottomSheetRef2.current?.forceClose();
             bottomSheetRef1.current?.snapToIndex(0);
+            bottomSheetRef.current?.close();
+            bottomSheetRef2.current?.close();
+            bottomSheetRef3.current?.close();
         } else if (phase === 2) {
-            bottomSheetRef.current?.forceClose();
-            bottomSheetRef1.current?.forceClose();
             bottomSheetRef2.current?.snapToIndex(0);
+            bottomSheetRef.current?.close();
+            bottomSheetRef1.current?.close();
+            bottomSheetRef3.current?.close();
         } else if (phase === 3) {
-            bottomSheetRef.current?.forceClose();
-            bottomSheetRef1.current?.forceClose();
-            bottomSheetRef2.current?.forceClose();
+            bottomSheetRef3.current?.snapToIndex(0);
+            bottomSheetRef.current?.close();
+            bottomSheetRef1.current?.close();
+            bottomSheetRef2.current?.close();
         } else if (phase === 0) {
-            bottomSheetRef1.current?.forceClose();
-            bottomSheetRef2.current?.forceClose();
             bottomSheetRef.current?.snapToIndex(0);
+            bottomSheetRef1.current?.close();
+            bottomSheetRef2.current?.close();
+            bottomSheetRef3.current?.close();
         }
     }, [phase]);
 
@@ -747,24 +752,25 @@ export default function MapScreen() {
                     onRideCreated={setPendingRideId}
                 />
             </BottomSheet>
-            <Modal
-                animationType="slide"
-                transparent
-                visible={phase === 3}
-                onRequestClose={() => {
+            <BottomSheet 
+                ref={bottomSheetRef3}
+                index={-1}
+                backgroundStyle={{backgroundColor: Colors[theme].bgDark}}
+                handleIndicatorStyle={{backgroundColor: Colors[theme].text}}
+                enableDynamicSizing={false}
+                enableHandlePanningGesture={false}
+                enableContentPanningGesture={false}
+                enablePanDownToClose={false}
+                snapPoints={snapPoints3}
+                topInset={150}
+                containerStyle={{zIndex: 10000}}
+            >
+                <FindingDriver onCancel={() => {
                     if (!cancellingRideRequest) {
                         void handleCancelRideRequest();
                     }
-                }}
-            >
-                <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.2)" }}>
-                    <FindingDriver onCancel={() => {
-                        if (!cancellingRideRequest) {
-                            void handleCancelRideRequest();
-                        }
-                    }} />
-                </View>
-            </Modal>
+                }} />
+            </BottomSheet>
         </GestureHandlerRootView>
     )
 }
