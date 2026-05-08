@@ -80,7 +80,8 @@ interface FindingDriverProps {
 
 export default function FindingDriver({ onCancel }: FindingDriverProps) {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+  const theme = Colors[themeKey];
   const windowWidth = Dimensions.get("window").width;
   const trackWidth = windowWidth - 40;
 

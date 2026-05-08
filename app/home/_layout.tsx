@@ -4,20 +4,20 @@ import { useColorScheme } from 'react-native';
 
 export default function HomeStackLayout() {
   const colorScheme = useColorScheme();
-
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   return (
     <Drawer
       screenOptions={{
         headerShown: false,
-        drawerActiveTintColor: Colors[colorScheme ?? "light"].primary,
+        drawerActiveTintColor: Colors[themeKey].primary,
         drawerLabelStyle: {
-          color: Colors[colorScheme ?? "light"].text,
+          color: Colors[themeKey].text,
           fontFamily: "Outfit_600SemiBold",
           fontSize: 14,
           textAlign: "center",
         },
         drawerStyle: {
-          backgroundColor: Colors[colorScheme ?? "light"].bg,
+          backgroundColor: Colors[themeKey].bg,
           width: "50%",
         },
         drawerType: "front",

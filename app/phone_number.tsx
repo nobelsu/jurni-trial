@@ -14,6 +14,7 @@ import PhoneInput, { ICountry, isValidPhoneNumber } from 'react-native-internati
 export default function PhoneNumberScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     const [selectedCountry, setSelectedCountry] = useState<ICountry | undefined>(undefined);
@@ -66,10 +67,10 @@ export default function PhoneNumberScreen() {
                         <Text style={defaultStyles.title}>Enter your mobile number</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We'll check if you have an account or help you create one</Text>
                             <View style={{flexDirection: "row", marginTop: 20, gap: 4, height: 60}}>
-                                <View style={{flex: 1, justifyContent: "center", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg}}>
+                                <View style={{flex: 1, justifyContent: "center", borderRadius: 15, backgroundColor: Colors[themeKey].bg}}>
                                     <View style={{width: "100%", height: "100%", alignItems: "center", flexDirection: "row", gap: 8, paddingHorizontal: 8}}>
                                         {/* <View>
-                                            <FontAwesomeIcon icon={faPhone} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
+                                            <FontAwesomeIcon icon={faPhone} size={14} color={Colors[themeKey].textMuted}/>
                                         </View> */}
                                         <View style={{flex: 1}}>
                                             <PhoneInput
@@ -83,29 +84,29 @@ export default function PhoneNumberScreen() {
                                                 theme={colorScheme === 'dark' ? 'dark' : 'light'}
                                                 phoneInputStyles={{
                                                     container: {
-                                                        backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                                        backgroundColor: Colors[themeKey].bg,
                                                         borderWidth: 0,
                                                     },
                                                     flagContainer: {
-                                                        backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                                        backgroundColor: Colors[themeKey].bg,
                                                     },
                                                     divider: {
                                                         width: 0,
-                                                        // backgroundColor: Colors[colorScheme ?? "light"].border ?? Colors[colorScheme ?? "light"].textMuted,
+                                                        // backgroundColor: Colors[themeKey].border ?? Colors[themeKey].textMuted,
                                                     },
                                                     callingCode: {
-                                                        color: Colors[colorScheme ?? "light"].textMuted,
+                                                        color: Colors[themeKey].textMuted,
                                                         fontFamily: 'Outfit_400Regular',
                                                         fontSize: 16,
                                                     },
                                                     input: {
-                                                        color: Colors[colorScheme ?? "light"].textMuted,
+                                                        color: Colors[themeKey].textMuted,
                                                         fontFamily: 'Outfit_400Regular',
                                                         fontSize: 16,
                                                     },
                                                 }}
-                                                phoneInputPlaceholderTextColor={Colors[colorScheme ?? "light"].textDull}
-                                                phoneInputSelectionColor={Colors[colorScheme ?? "light"].textMuted}
+                                                phoneInputPlaceholderTextColor={Colors[themeKey].textDull}
+                                                phoneInputSelectionColor={Colors[themeKey].textMuted}
                                             />
                                         </View>
                                     </View>

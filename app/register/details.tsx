@@ -16,6 +16,7 @@ import Error from '../../components/Error';
 export default function DetailsScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     const [email, setEmail] = useState<string>("");
@@ -35,9 +36,9 @@ export default function DetailsScreen() {
                         <Text style={defaultStyles.title}>Enter your details</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We'll use this to personalize your experience</Text>
                         <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
-                                <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} placeholder='Name' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[themeKey].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[themeKey].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[themeKey].textMuted,}} placeholderTextColor={Colors[themeKey].textDull} placeholder='Name' autoFocus selectionColor={Colors[themeKey].textMuted} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}

@@ -13,11 +13,12 @@ interface BtnProps {
 export default function Btn({onPress, text, styleBtn, styleTxt, disabled=false}: BtnProps) {
     const colorScheme = useColorScheme();
  
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     return (
         <TouchableOpacity 
             onPress={onPress} 
             style={{
-                backgroundColor: Colors[colorScheme ?? "light"].primary,
+                backgroundColor: Colors[themeKey].primary,
                 padding: 14,
                 borderRadius: 18,
                 justifyContent: "center",

@@ -4,7 +4,8 @@ import { useColorScheme } from "react-native";
 
 export default function RideHistoryLayout() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+  const colors = Colors[themeKey];
 
   return (
     <Stack

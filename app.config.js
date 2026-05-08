@@ -24,7 +24,7 @@ const expoConfig = {
       },
       package: "com.suhendra.jurni",
       userInterfaceStyle: "automatic",
-      googleServicesFile: process.env.GOOGLE_SERVICES ?? "./google-services.json",
+      googleServicesFile: process.env.GOOGLE_SERVICES ?? "./google-services.json", 
       permissions: [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"

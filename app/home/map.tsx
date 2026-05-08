@@ -36,11 +36,13 @@ import { faAngleLeft } from '@fortawesome/free-solid-svg-icons/faAngleLeft';
 import { faApple } from '@fortawesome/free-brands-svg-icons/faApple';
 import { faEllipsisVertical } from '@fortawesome/free-solid-svg-icons/faEllipsisVertical';
 import FindingDriver from '../../components/FindingDriver';
+import firestore from '@react-native-firebase/firestore';
 
 export default function MapScreen() {
     setAccessToken(MAPBOX_ACCESS_TOKEN);
 
     const colorScheme = useColorScheme();
+    const theme: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
     const router = useRouter();
     
@@ -100,6 +102,8 @@ export default function MapScreen() {
     const [showToast, setShowToast] = useState<boolean>(false);
 
     const [processing, setProcessing] = useState<boolean>(false);
+    const [pendingRideId, setPendingRideId] = useState<string | null>(null);
+    const [cancellingRideRequest, setCancellingRideRequest] = useState<boolean>(false);
 
     const auth = getAuth();
     const user = auth.currentUser;
@@ -139,6 +143,48 @@ export default function MapScreen() {
             });
         }
     }
+
+    const resetRideRequestState = useCallback(() => {
+        setUpdated(false);
+        setPhase(0);
+        setPickupInput("");
+        setPickupCoords([-1, -1]);
+        setDestInput("");
+        setDestCoords([-1, -1]);
+        setInputToggle(true);
+        setSelected("basic");
+        setDistance(0);
+        setDuration(0);
+        setCoordinates([]);
+        setWalkingCoordinates([]);
+        setNe(undefined);
+        setSw(undefined);
+        setFollowUser(false);
+        setMoving(false);
+        setRideOptionsVisible(false);
+        setPendingRideId(null);
+    }, []);
+
+    const handleCancelRideRequest = useCallback(async () => {
+        if (cancellingRideRequest) {
+            return;
+        }
+        setCancellingRideRequest(true);
+        const rideIdToDelete = pendingRideId;
+        resetRideRequestState();
+        try {
+            if (rideIdToDelete) {
+                await firestore().collection("rides").doc(rideIdToDelete).delete();
+            }
+            await getCurrentLocation();
+        } catch (error) {
+            console.log("Failed to cancel pending ride request", error);
+            setToastMessage("Couldn't fully cancel your ride request. Please try again.");
+            setShowToast(true);
+        } finally {
+            setCancellingRideRequest(false);
+        }
+    }, [cancellingRideRequest, pendingRideId, resetRideRequestState]);
 
     async function obtainAddressFromSearchbox(coords: Position, isDestination: boolean) {
         setProcessing(true);
@@ -261,19 +307,7 @@ export default function MapScreen() {
     useFocusEffect(
         useCallback(() => {
             getCurrentLocation();
-            setUpdated(false);
-            setPhase(0);
-            setDestInput("");
-            setDestCoords([-1, -1]);
-            setInputToggle(true);
-            setSelected("basic");
-            setDistance(0);
-            setDuration(0);
-            setNe(undefined);
-            setSw(undefined);
-            setWalkingCoordinates([]);
-            setFollowUser(false);
-            setMoving(false);
+            resetRideRequestState();
             if (user?.uid) {
                 getUserSettings(user.uid)
                     .then((settings) => {
@@ -296,7 +330,7 @@ export default function MapScreen() {
                 setFemaleDriverPreferred(false);
                 setVerified(false);
             }
-        }, [])
+        }, [resetRideRequestState])
     );
 
     useEffect(() => {
@@ -348,6 +382,7 @@ export default function MapScreen() {
     }, [phase]);
 
     useEffect(() => {
+        console.log("phase", phase);
         if (phase === 1) {
             bottomSheetRef.current?.forceClose();
             bottomSheetRef2.current?.forceClose();
@@ -374,14 +409,14 @@ export default function MapScreen() {
                 height: 50,
                 width: 50,
                 borderRadius: 100,
-                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                backgroundColor: Colors[theme].bgDark,
                 top: 60,
                 left: 20,
                 zIndex: 1000,
                 justifyContent: "center",
                 alignItems: "center",
             }}>
-                <FontAwesomeIcon icon={faBars} size={20} color={Colors[colorScheme ?? "light"].text}/>
+                <FontAwesomeIcon icon={faBars} size={20} color={Colors[theme].text}/>
             </TouchableOpacity>
             {showCrosshair && <CrosshairOverlay ref={crosshair} moving={moving} />}
             <Toast
@@ -393,10 +428,10 @@ export default function MapScreen() {
                 }}
             />
             {(!followUser && (phase == 0)) && 
-                <TouchableOpacity style={{height: 36, width: 36, backgroundColor: Colors[colorScheme??"light"].bgDark, position: "absolute", right: 20, bottom: 280, zIndex: 1000, borderRadius: 18, justifyContent: "center", alignItems: "center"}} onPress={() => {
+                <TouchableOpacity style={{height: 36, width: 36, backgroundColor: Colors[theme].bgDark, position: "absolute", right: 20, bottom: 280, zIndex: 1000, borderRadius: 18, justifyContent: "center", alignItems: "center"}} onPress={() => {
                     setFollowUser(true)
                 }}>
-                    <FontAwesomeIcon icon={faLocationCrosshairs} size={18} color={Colors[colorScheme ?? "light"].text}/>
+                    <FontAwesomeIcon icon={faLocationCrosshairs} size={18} color={Colors[theme].text}/>
                 </TouchableOpacity>
             }
             {(location) ? 
@@ -510,8 +545,8 @@ export default function MapScreen() {
                 }}/>
             </MapView>
             :
-            <View style={{flex: 1, backgroundColor: Colors[colorScheme ?? "light"].bgDark, zIndex: 1000,}}>
-                <Text style={{color: Colors[colorScheme ?? "light"].text}}>
+            <View style={{flex: 1, backgroundColor: Colors[theme].bgDark, zIndex: 1000,}}>
+                <Text style={{color: Colors[theme].text}}>
                     Loading
                 </Text>
             </View>
@@ -524,8 +559,8 @@ export default function MapScreen() {
                         else pickupRef.current?.focus();
                     }
                 }}
-                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
-                handleIndicatorStyle={{backgroundColor: Colors[colorScheme ?? "light"].text}}
+                backgroundStyle={{backgroundColor: Colors[theme].bgDark}}
+                handleIndicatorStyle={{backgroundColor: Colors[theme].text}}
                 keyboardBehavior="interactive"
                 snapPoints={snapPoints}
                 enableDynamicSizing={false}
@@ -535,7 +570,6 @@ export default function MapScreen() {
             >
                 <SetLocation 
                     setPhase={setPhase} 
-                    nextRef={bottomSheetRef1} 
                     moving={moving} 
                     toggle={inputToggle} 
                     setToggle={setInputToggle} 
@@ -579,8 +613,8 @@ export default function MapScreen() {
             <BottomSheet 
                 ref={bottomSheetRef1} 
                 index={-1}
-                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
-                handleIndicatorStyle={{backgroundColor: Colors[colorScheme ?? "light"].text}}
+                backgroundStyle={{backgroundColor: Colors[theme].bgDark}}
+                handleIndicatorStyle={{backgroundColor: Colors[theme].text}}
                 keyboardBehavior="interactive"
                 snapPoints={snapPoints1}
                 enableDynamicSizing={false}
@@ -604,13 +638,13 @@ export default function MapScreen() {
                                     <FontAwesomeIcon
                                         icon={faApple}
                                         size={18}
-                                        color={Colors[colorScheme ?? "light"].text}
+                                        color={Colors[theme].text}
                                         style={{ marginLeft: 4, marginRight: 8,}}
                                     />
-                                    <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 16, fontWeight: 500,}}>Apple Pay</Text>
+                                    <Text style={{color: Colors[theme].text, fontSize: 16, fontWeight: 500,}}>Apple Pay</Text>
                                 </View>
                                 <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end"}}>
-                                    <FontAwesomeIcon icon={faAngleRight} size={16} color={Colors[colorScheme ?? "light"].text}/>
+                                    <FontAwesomeIcon icon={faAngleRight} size={16} color={Colors[theme].text}/>
                                 </View>
                             </TouchableOpacity>
                             <View style={{height: 50, marginHorizontal: 20, flexDirection: "row", marginBottom: 24, gap: 8,}}>
@@ -619,24 +653,24 @@ export default function MapScreen() {
                                         setUpdated(false);
                                         setPhase(0);
                                     }}
-                                    style={{width: 50, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
-                                    <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].bg}/>
+                                    style={{width: 50, height: 50, backgroundColor: Colors[theme].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
+                                    <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[theme].bg}/>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     onPress={async () => {
                                         await reverseGeocodePickupForConfirm(pickupCoords);
                                         setPhase(2);
                                     }}
-                                style={{flex: 1, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
-                                <Text style={{fontSize: 18, fontWeight: 500, color: Colors[colorScheme ?? "light"].bg}}>Choose {rideTypeMetadata[selected]?.name}</Text>
+                                style={{flex: 1, height: 50, backgroundColor: Colors[theme].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}>
+                                <Text style={{fontSize: 18, fontWeight: 500, color: Colors[theme].bg}}>Choose {rideTypeMetadata[selected]?.name}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => {
                                         setRideOptionsVisible(true);
                                     }}
-                                    style={{width: 50, height: 50, backgroundColor: Colors[colorScheme ?? "light"].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}
+                                    style={{width: 50, height: 50, backgroundColor: Colors[theme].text, borderRadius: 10, justifyContent: "center", alignItems: "center"}}
                                 >
-                                    <FontAwesomeIcon icon={faEllipsisVertical} size={18} color={Colors[colorScheme ?? "light"].bg}/>
+                                    <FontAwesomeIcon icon={faEllipsisVertical} size={18} color={Colors[theme].bg}/>
                                 </TouchableOpacity>
                             </View>
                         </BottomSheetFooter>
@@ -675,7 +709,7 @@ export default function MapScreen() {
             <BottomSheet 
                 ref={bottomSheetRef2} 
                 index={-1}
-                backgroundStyle={{backgroundColor: Colors[colorScheme ?? "light"].bgDark}}
+                backgroundStyle={{backgroundColor: Colors[theme].bgDark}}
                 enableHandlePanningGesture={false}
                 keyboardBehavior="interactive"
                 snapPoints={snapPoints2}
@@ -699,7 +733,6 @@ export default function MapScreen() {
                     destInput={destInput}
                     moving={moving} 
                     setPhase={setPhase} 
-                    prevRef={bottomSheetRef1}
                     riderId={user?.uid}
                     price={price}
                     typeId={selected}
@@ -711,16 +744,25 @@ export default function MapScreen() {
                     femaleDriverPreferred={femaleDriverPreferred}
                     verified={verified}
                     processing={processing}
+                    onRideCreated={setPendingRideId}
                 />
             </BottomSheet>
             <Modal
                 animationType="slide"
                 transparent
                 visible={phase === 3}
-                onRequestClose={() => setPhase(2)}
+                onRequestClose={() => {
+                    if (!cancellingRideRequest) {
+                        void handleCancelRideRequest();
+                    }
+                }}
             >
                 <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.2)" }}>
-                    <FindingDriver onCancel={() => setPhase(2)} />
+                    <FindingDriver onCancel={() => {
+                        if (!cancellingRideRequest) {
+                            void handleCancelRideRequest();
+                        }
+                    }} />
                 </View>
             </Modal>
         </GestureHandlerRootView>

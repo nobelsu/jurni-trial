@@ -10,7 +10,7 @@ interface RouteWalkingProps {
 
 export default function RouteWalking ({ coordinates } : RouteWalkingProps) {
   const colorScheme = useColorScheme()
-
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   // #region agent log
   fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
     method: 'POST',
@@ -48,7 +48,7 @@ export default function RouteWalking ({ coordinates } : RouteWalkingProps) {
   }, [coordinates]);
   return (
     <ShapeSource id={'route-walking-shape-source'} shape={features}>
-      <LineLayer id={'route-walking-line-layer'} style={{lineColor: Colors[colorScheme ?? "light"].text, lineWidth: 2 , lineCap: "round", lineDasharray: [0, 2]}} />
+      <LineLayer id={'route-walking-line-layer'} style={{lineColor: Colors[themeKey].text, lineWidth: 2 , lineCap: "round", lineDasharray: [0, 2]}} />
     </ShapeSource>
   );
 };

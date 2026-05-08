@@ -25,7 +25,8 @@ export default function UnsavedChangesModal({
   onCancel,
 }: UnsavedChangesModalProps) {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+  const colors = Colors[themeKey];
 
   const handleSave = async () => {
     await onSave();

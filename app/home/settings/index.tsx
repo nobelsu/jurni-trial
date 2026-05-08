@@ -51,7 +51,8 @@ function getInitials(name: string): string {
 
 export default function SettingsHomeScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+  const colors = Colors[themeKey];
   const defaultStyles = StyleDefault({ colorScheme });
   const router = useRouter();
   const navigation = useNavigation();

@@ -10,29 +10,30 @@ interface TagDataProps {
 }
 
 function TagData({colorScheme} : TagDataProps) {
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const dataTag = [
         {
-            bgColor: Colors[colorScheme ?? "light"].text,
-            textColor: Colors[colorScheme ?? "light"].bgDark,
+            bgColor: Colors[themeKey].text,
+            textColor: Colors[themeKey].bgDark,
             text: "Faster"
         },
         {
-            bgColor: Colors[colorScheme ?? "light"].primary,
+            bgColor: Colors[themeKey].primary,
             textColor: Colors["dark"].text,
             text: "Comfort"
         },
         {
-            bgColor: Colors[colorScheme ?? "light"].bg,
-            textColor: Colors[colorScheme ?? "light"].text,
+            bgColor: Colors[themeKey].bg,
+            textColor: Colors[themeKey].text,
             text: "Business"
         },
         {
-            bgColor: Colors[colorScheme ?? "light"].bgLight,
+            bgColor: Colors[themeKey].bgLight,
             textColor: Colors["dark"].text,
             text: "Larger"
         },
         {
-            bgColor: Colors[colorScheme ?? "light"].secondary,
+            bgColor: Colors[themeKey].secondary,
             textColor: Colors["dark"].text,
             text: "WAV"            
         },

@@ -6,11 +6,12 @@ interface StyleDefaultProps {
 }
 
 export default function StyleDefault({ colorScheme } : StyleDefaultProps) {
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const DefaultStyles = StyleSheet.create({
     container: {
       flex: 1,
       paddingHorizontal: 20,
-      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+      backgroundColor: Colors[themeKey].bgDark,
     },
     header: {
       flexDirection: "row",
@@ -22,30 +23,30 @@ export default function StyleDefault({ colorScheme } : StyleDefaultProps) {
     title: {
       fontSize: 22,
       fontFamily: 'Outfit_600SemiBold',
-      color: Colors[colorScheme ?? "light"].text,
+      color: Colors[themeKey].text,
     },
     subtitle: {
       fontSize: 18,
       fontFamily: 'Outfit_400Regular',
-      color: Colors[colorScheme ?? "light"].textMuted,
+      color: Colors[themeKey].textMuted,
     },
     smallCard: {
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: Colors[colorScheme ?? "light"].secondary,
-      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+      borderColor: Colors[themeKey].secondary,
+      backgroundColor: Colors[themeKey].bgDark,
     },
     mediumCard: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: Colors[colorScheme ?? "light"].secondary,
-      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+      borderColor: Colors[themeKey].secondary,
+      backgroundColor: Colors[themeKey].bgDark,
     },
     largeCard: {
       borderRadius: 16,
       borderWidth: 4,
-      borderColor: Colors[colorScheme ?? "light"].secondary,
-      backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+      borderColor: Colors[themeKey].secondary,
+      backgroundColor: Colors[themeKey].bgDark,
     },
   });
   return DefaultStyles;

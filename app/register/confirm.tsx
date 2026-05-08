@@ -21,6 +21,7 @@ import { saveInitialDriverDocument } from "../../lib/registerDriver";
 export default function ConfirmPasswordScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     const user = auth().currentUser;
@@ -95,9 +96,9 @@ export default function ConfirmPasswordScreen() {
                         <Text style={defaultStyles.title}>Confirm your password</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Re-enter your password to make sure it's correct</Text>
                         <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
-                                <FontAwesomeIcon icon={faKey} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} value={passwordConfirm} onChangeText={setPasswordConfirm}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[themeKey].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faKey} size={14} color={Colors[themeKey].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[themeKey].textMuted,}} placeholderTextColor={Colors[themeKey].textDull} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[themeKey].textMuted} value={passwordConfirm} onChangeText={setPasswordConfirm}/>
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}

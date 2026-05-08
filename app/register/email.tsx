@@ -18,6 +18,7 @@ import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars';
 export default function RegisterEmailScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     const [email, setEmail] = useState<string>("");
@@ -74,19 +75,19 @@ export default function RegisterEmailScreen() {
                         <Text style={defaultStyles.title}>Enter your details</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Let's get your profile setup</Text>
                         <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
-                                <FontAwesomeIcon icon={faUser} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} placeholder='Full Name' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} value={name} onChangeText={setName}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[themeKey].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faUser} size={14} color={Colors[themeKey].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[themeKey].textMuted,}} placeholderTextColor={Colors[themeKey].textDull} placeholder='Full Name' autoFocus selectionColor={Colors[themeKey].textMuted} value={name} onChangeText={setName}/>
                             </View>
                         </View>
                         <View style={{marginTop: 8, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
-                                <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} placeholder='Email' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[themeKey].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faEnvelope} size={14} color={Colors[themeKey].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[themeKey].textMuted,}} placeholderTextColor={Colors[themeKey].textDull} placeholder='Email' autoFocus selectionColor={Colors[themeKey].textMuted} keyboardType='email-address' autoCapitalize='none' value={email} onChangeText={setEmail}/>
                             </View>
                         </View>
                         <View style={{ marginTop: 8 }}>
-                            <Text style={{ fontFamily: 'Outfit_500Medium', fontSize: 13, color: Colors[colorScheme ?? "light"].textMuted, marginBottom: 6 }}>
+                            <Text style={{ fontFamily: 'Outfit_500Medium', fontSize: 13, color: Colors[themeKey].textMuted, marginBottom: 6 }}>
                                 Gender
                             </Text>
                             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -108,21 +109,21 @@ export default function RegisterEmailScreen() {
                                                 paddingVertical: 8,
                                                 borderRadius: 999,
                                                 backgroundColor: isActive
-                                                    ? Colors[colorScheme ?? "light"].primary
-                                                    : Colors[colorScheme ?? "light"].bg,
+                                                    ? Colors[themeKey].primary
+                                                    : Colors[themeKey].bg,
                                             }}
                                         >
                                             <FontAwesomeIcon
                                                 icon={faVenusMars}
                                                 size={11}
-                                                color={isActive ? "#ffffff" : Colors[colorScheme ?? "light"].textMuted}
+                                                color={isActive ? "#ffffff" : Colors[themeKey].textMuted}
                                                 style={{ marginRight: 6 }}
                                             />
                                             <Text
                                                 style={{
                                                     fontFamily: 'Outfit_500Medium',
                                                     fontSize: 13,
-                                                    color: isActive ? "#ffffff" : Colors[colorScheme ?? "light"].text,
+                                                    color: isActive ? "#ffffff" : Colors[themeKey].text,
                                                 }}
                                             >
                                                 {option.label}

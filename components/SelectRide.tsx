@@ -73,6 +73,7 @@ export default function SelectRide({
 
     const windowWidth = Dimensions.get('window').width;
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     return (
@@ -80,11 +81,11 @@ export default function SelectRide({
             <View style={{
                 width: windowWidth,
                 paddingTop: 10,
-                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                backgroundColor: Colors[themeKey].bgDark,
                 marginBottom: 10,
             }}>
                 <View style={{width: "100%", paddingHorizontal: 20, justifyContent: "center", alignItems: "center"}}>
-                    <Text style={{...defaultStyles.title, marginBottom: 15,}}>Select a <Text style={{color: Colors[colorScheme ?? "light"].primary}}>ride</Text></Text>
+                    <Text style={{...defaultStyles.title, marginBottom: 15,}}>Select a <Text style={{color: Colors[themeKey].primary}}>ride</Text></Text>
                     <BottomSheetScrollView style={{width: "100%", height: 391}}> 
                         {rideIds.map((id) => {
                             return (<RideComponent id={id} key={`${id}`} selected={selectedId} setSelected={setSelected} setPhase={setPhase} nextRef={nextRef} mapRef={mapRef} distance={distance} duration={duration} pickupCoords={pickupCoords} setPickupInput={setPickupInput}/>)
@@ -112,7 +113,7 @@ export default function SelectRide({
                     />
                     <View
                         style={{
-                            backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                            backgroundColor: Colors[themeKey].bgDark,
                             borderTopLeftRadius: 24,
                             borderTopRightRadius: 24,
                             paddingHorizontal: 20,
@@ -138,21 +139,21 @@ export default function SelectRide({
                                     borderRadius: 16,
                                     justifyContent: "center",
                                     alignItems: "center",
-                                    backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                    backgroundColor: Colors[themeKey].bg,
                                 }}
                                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
                                 <FontAwesomeIcon
                                     icon={faTimes}
                                     size={14}
-                                    color={Colors[colorScheme ?? "light"].text}
+                                    color={Colors[themeKey].text}
                                 />
                             </TouchableOpacity>
                         </View>
                         <View
                             style={{
                                 borderRadius: 20,
-                                backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                backgroundColor: Colors[themeKey].bg,
                                 paddingHorizontal: 16,
                                 paddingVertical: 14,
                                 marginBottom: 12,
@@ -182,17 +183,17 @@ export default function SelectRide({
                                     value={silentOnly}
                                     onValueChange={setSilentOnly}
                                     trackColor={{
-                                        false: Colors[colorScheme ?? "light"].bgDark,
-                                        true: Colors[colorScheme ?? "light"].primary,
+                                        false: Colors[themeKey].bgDark,
+                                        true: Colors[themeKey].primary,
                                     }}
-                                    thumbColor={Colors[colorScheme ?? "light"].bgDark}
+                                    thumbColor={Colors[themeKey].bgDark}
                                 />
                             </View>
                         </View>
                         <View
                             style={{
                                 borderRadius: 20,
-                                backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                backgroundColor: Colors[themeKey].bg,
                                 paddingHorizontal: 16,
                                 paddingVertical: 14,
                             }}
@@ -221,10 +222,10 @@ export default function SelectRide({
                                     value={femaleDriverPreferred}
                                     onValueChange={setFemaleDriverPreferred}
                                     trackColor={{
-                                        false: Colors[colorScheme ?? "light"].bgDark,
-                                        true: Colors[colorScheme ?? "light"].primary,
+                                        false: Colors[themeKey].bgDark,
+                                        true: Colors[themeKey].primary,
                                     }}
-                                    thumbColor={Colors[colorScheme ?? "light"].bgDark}
+                                    thumbColor={Colors[themeKey].bgDark}
                                 />
                             </View>
                         </View>

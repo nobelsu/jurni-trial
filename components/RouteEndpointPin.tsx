@@ -10,7 +10,8 @@ interface RouteEndpointPinProps {
 
 export default function RouteEndpointPin({ type }: RouteEndpointPinProps) {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+  const theme = Colors[themeKey];
 
   const isStart = type === "start";
 

@@ -26,6 +26,7 @@ import Error from '../components/Error';
 export default function OtpScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
     const number = useGlobalSearchParams<{ number : string }>().number;
     
@@ -104,7 +105,7 @@ export default function OtpScreen() {
 
                     <View style={{flex: 5, paddingTop: 30,}}>
                         <Text style={defaultStyles.title}>Verify your phone number</Text>
-                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Enter the security code sent to <Text style={{fontFamily: "Outfit_600SemiBold", color: Colors[colorScheme ?? "light"].secondary}}>{number}</Text></Text>
+                        <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>Enter the security code sent to <Text style={{fontFamily: "Outfit_600SemiBold", color: Colors[themeKey].secondary}}>{number}</Text></Text>
                         <View style={{marginTop: 20, alignItems: "center"}}>
                             <CodeField  
                                 ref={ref}
@@ -128,15 +129,15 @@ export default function OtpScreen() {
                                             lineHeight: 45,
                                             fontSize: 20,
                                             borderWidth: 1,
-                                            borderColor: Colors[colorScheme ?? "light"].bg, 
+                                            borderColor: Colors[themeKey].bg, 
                                             textAlign: 'center',
-                                            color: Colors[colorScheme ?? "light"].text,
+                                            color: Colors[themeKey].text,
                                             fontFamily: 'Outfit_400Regular',
-                                            backgroundColor: Colors[colorScheme ?? "light"].bg, 
+                                            backgroundColor: Colors[themeKey].bg, 
                                             borderRadius: 12,
                                         }, 
                                         isFocused && {
-                                            borderColor: Colors[colorScheme ?? "light"].secondary,
+                                            borderColor: Colors[themeKey].secondary,
                                         }
                                     ]}
                                     onLayout={getCellOnLayoutHandler(index)}>

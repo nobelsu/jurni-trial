@@ -10,7 +10,8 @@ interface ToastProps {
 
 export default function Toast({ message, visible, onDismiss }: ToastProps) {
     const colorScheme = useColorScheme();
-    const colors = Colors[colorScheme ?? "light"];
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+    const colors = Colors[themeKey];
 
     useEffect(() => {
         if (!visible || !message) return;

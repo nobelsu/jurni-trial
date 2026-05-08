@@ -63,6 +63,7 @@ export default function SearchLocation({
 }: SearchLocationProps) {
     const windowWidth = Dimensions.get('window').width;
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
     const { animatedPosition, snapToIndex } = useBottomSheet();
     const opacity = useSharedValue(0);
@@ -209,7 +210,7 @@ export default function SearchLocation({
             style={{
                 flex: 1,
                 marginBottom: 20,
-                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                backgroundColor: Colors[themeKey].bgDark,
                 opacity: opacity,
             }}
             stickyHeaderIndices={[0]}
@@ -220,7 +221,7 @@ export default function SearchLocation({
                     width: windowWidth,
                     paddingHorizontal: 20,
                     paddingVertical: 10,
-                    backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                    backgroundColor: Colors[themeKey].bgDark,
                 }}>
                     <View
                         style={{
@@ -231,7 +232,7 @@ export default function SearchLocation({
                     >
                         <Text style={defaultStyles.title}>
                             Plan your{" "}
-                            <Text style={{ color: Colors[colorScheme ?? "light"].primary }}>jurni</Text>
+                            <Text style={{ color: Colors[themeKey].primary }}>jurni</Text>
                         </Text>
                     </View>
                     <View style={{
@@ -241,7 +242,7 @@ export default function SearchLocation({
                         marginTop: 15,
                         paddingVertical: 10,
                         paddingHorizontal: 10,
-                        borderColor: Colors[colorScheme ?? "light"].text,
+                        borderColor: Colors[themeKey].text,
                     }}>
                         <View style={{
                             height: 18,
@@ -253,7 +254,7 @@ export default function SearchLocation({
                             <FontAwesomeIcon
                                 icon={faLocationDot}
                                 size={16}
-                                color={Colors[colorScheme ?? "light"].text}
+                                color={Colors[themeKey].text}
                             />
                             <View
                                 style={{
@@ -268,12 +269,12 @@ export default function SearchLocation({
                                         flex: 1,
                                         height: "100%",
                                         fontSize: 16,
-                                        color: Colors[colorScheme ?? "light"].text,
+                                        color: Colors[themeKey].text,
                                         fontFamily: 'Outfit_400Regular',
                                         paddingRight: 24,
                                     }}
                                     selectTextOnFocus
-                                    placeholderTextColor={Colors[colorScheme ?? "light"].textMuted}
+                                    placeholderTextColor={Colors[themeKey].textMuted}
                                     placeholder='Pickup Location'
                                     value={pickupInput}
                                     onChangeText={(text) => setPickupInput(text)}
@@ -301,7 +302,7 @@ export default function SearchLocation({
                                         <FontAwesomeIcon
                                             icon={faXmark}
                                             size={12}
-                                            color={Colors[colorScheme ?? "light"].textMuted}
+                                            color={Colors[themeKey].textMuted}
                                         />
                                     </TouchableOpacity>
                                 )}
@@ -312,7 +313,7 @@ export default function SearchLocation({
                             width: (windowWidth - 40) * 0.9 - 25,
                             borderWidth: 0.3,
                             marginTop: 6,
-                            borderColor: Colors[colorScheme ?? "light"].text,
+                            borderColor: Colors[themeKey].text,
                         }} />
                         <View style={{
                             height: 18,
@@ -325,7 +326,7 @@ export default function SearchLocation({
                             <FontAwesomeIcon
                                 icon={faMap}
                                 size={16}
-                                color={Colors[colorScheme ?? "light"].text}
+                                color={Colors[themeKey].text}
                             />
                             <View
                                 style={{
@@ -340,11 +341,11 @@ export default function SearchLocation({
                                         flex: 1,
                                         height: "100%",
                                         fontSize: 16,
-                                        color: Colors[colorScheme ?? "light"].text,
+                                        color: Colors[themeKey].text,
                                         fontFamily: 'Outfit_400Regular',
                                         paddingRight: 24,
                                     }}
-                                    placeholderTextColor={Colors[colorScheme ?? "light"].textMuted}
+                                    placeholderTextColor={Colors[themeKey].textMuted}
                                     placeholder='Where to?'
                                     value={destInput}
                                     onChangeText={(text) => setDestInput(text)}
@@ -373,7 +374,7 @@ export default function SearchLocation({
                                         <FontAwesomeIcon
                                             icon={faXmark}
                                             size={12}
-                                            color={Colors[colorScheme ?? "light"].textMuted}
+                                            color={Colors[themeKey].textMuted}
                                         />
                                     </TouchableOpacity>
                                 )}
@@ -385,7 +386,7 @@ export default function SearchLocation({
 
             {searching && (
                 <View style={{ paddingVertical: 20, alignItems: "center" }}>
-                    <ActivityIndicator size="small" color={Colors[colorScheme ?? "light"].text} />
+                    <ActivityIndicator size="small" color={Colors[themeKey].text} />
                 </View>
             )}
 
@@ -415,13 +416,13 @@ export default function SearchLocation({
                                 <FontAwesomeIcon
                                     icon={faMagnifyingGlass}
                                     size={15}
-                                    color={Colors[colorScheme ?? "light"].text}
+                                    color={Colors[themeKey].text}
                                 />
                             </View>
                             <View style={{
                                 flex: 5,
                                 borderBottomWidth: 0.6,
-                                borderColor: Colors[colorScheme ?? "light"].bgLight,
+                                borderColor: Colors[themeKey].bgLight,
                                 justifyContent: "center",
                                 paddingBottom: 4,
                             }}>
@@ -442,8 +443,8 @@ export default function SearchLocation({
                                 size={15}
                                 color={
                                     fav
-                                        ? Colors[colorScheme ?? "light"].primary
-                                        : Colors[colorScheme ?? "light"].textDull
+                                        ? Colors[themeKey].primary
+                                        : Colors[themeKey].textDull
                                 }
                             />
                         </TouchableOpacity>
@@ -479,13 +480,13 @@ export default function SearchLocation({
                                         <FontAwesomeIcon
                                             icon={faClock}
                                             size={15}
-                                            color={Colors[colorScheme ?? "light"].textDull}
+                                            color={Colors[themeKey].textDull}
                                         />
                                     </View>
                                     <View style={{
                                         flex: 5,
                                         borderBottomWidth: 0.6,
-                                        borderColor: Colors[colorScheme ?? "light"].bgLight,
+                                        borderColor: Colors[themeKey].bgLight,
                                         justifyContent: "center",
                                         paddingBottom: 4,
                                     }}>
@@ -506,8 +507,8 @@ export default function SearchLocation({
                                         size={15}
                                         color={
                                             fav
-                                                ? Colors[colorScheme ?? "light"].primary
-                                                : Colors[colorScheme ?? "light"].textDull
+                                                ? Colors[themeKey].primary
+                                                : Colors[themeKey].textDull
                                         }
                                     />
                                 </TouchableOpacity>
@@ -536,14 +537,14 @@ export default function SearchLocation({
                                 height: 30,
                                 width: 30,
                                 borderRadius: 15,
-                                backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                backgroundColor: Colors[themeKey].bg,
                                 justifyContent: "center",
                                 alignItems: "center",
                             }}>
                                 <FontAwesomeIcon
                                     icon={faMapPin}
                                     size={15}
-                                    color={Colors[colorScheme ?? "light"].text}
+                                    color={Colors[themeKey].text}
                                 />
                             </View>
                             <Text style={{ ...defaultStyles.title, fontSize: 14 }}>
@@ -569,14 +570,14 @@ export default function SearchLocation({
                                 height: 30,
                                 width: 30,
                                 borderRadius: 15,
-                                backgroundColor: Colors[colorScheme ?? "light"].bg,
+                                backgroundColor: Colors[themeKey].bg,
                                 justifyContent: "center",
                                 alignItems: "center",
                             }}>
                                 <FontAwesomeIcon
                                     icon={faStarSolid}
                                     size={15}
-                                    color={Colors[colorScheme ?? "light"].primary}
+                                    color={Colors[themeKey].primary}
                                 />
                             </View>
                             <Text style={{ ...defaultStyles.title, fontSize: 14 }}>
@@ -602,7 +603,7 @@ export default function SearchLocation({
                 >
                     <View
                         style={{
-                            backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                            backgroundColor: Colors[themeKey].bgDark,
                             paddingHorizontal: 20,
                             paddingTop: 16,
                             paddingBottom: 32,
@@ -658,7 +659,7 @@ export default function SearchLocation({
                                             <FontAwesomeIcon
                                                 icon={faStarSolid}
                                                 size={15}
-                                                color={Colors[colorScheme ?? "light"].primary}
+                                                color={Colors[themeKey].primary}
                                             />
                                         </View>
                                         <View
@@ -666,7 +667,7 @@ export default function SearchLocation({
                                                 flex: 5,
                                                 borderBottomWidth: 0.6,
                                                 borderColor:
-                                                    Colors[colorScheme ?? "light"].bgLight,
+                                                    Colors[themeKey].bgLight,
                                                 justifyContent: "center",
                                                 paddingBottom: 4,
                                             }}
@@ -698,7 +699,7 @@ export default function SearchLocation({
                                         <FontAwesomeIcon
                                             icon={faStarSolid}
                                             size={15}
-                                            color={Colors[colorScheme ?? "light"].primary}
+                                            color={Colors[themeKey].primary}
                                         />
                                     </TouchableOpacity>
                                 </View>

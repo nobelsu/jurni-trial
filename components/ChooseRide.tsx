@@ -46,6 +46,7 @@ export default function ChooseRide({selectedId, nextRef, setPhase, mapRef, dista
 
     const windowWidth = Dimensions.get('window').width;
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     return (
@@ -53,10 +54,10 @@ export default function ChooseRide({selectedId, nextRef, setPhase, mapRef, dista
             <View style={{
                 width: windowWidth,
                 paddingVertical: 10,
-                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                backgroundColor: Colors[themeKey].bgDark,
             }}>
                 <View style={{width: "100%", paddingHorizontal: 20, justifyContent: "center", alignItems: "center"}}>
-                    <Text style={{...defaultStyles.title, marginBottom: 8,}}>Your <Text style={{color: Colors[colorScheme ?? "light"].primary }}>ride</Text></Text>
+                    <Text style={{...defaultStyles.title, marginBottom: 8,}}>Your <Text style={{color: Colors[themeKey].primary }}>ride</Text></Text>
                     <RideComponent id={selectedId} selected={selectedId} nextRef={nextRef} setPhase={setPhase} mapRef={mapRef} distance={distance} duration={duration} pickupCoords={pickupCoords} setPickupInput={setPickupInput}/>
                 </View>
             </View>             

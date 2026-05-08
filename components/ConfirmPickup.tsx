@@ -18,7 +18,6 @@ interface ConfirmPickupProps {
     setPickupInput: React.Dispatch<React.SetStateAction<string>>,
     destInput: string,
     moving: boolean,
-    prevRef: any,
     setPhase: React.Dispatch<React.SetStateAction<number>>,
     riderId: string | undefined,
     price: number,
@@ -31,6 +30,7 @@ interface ConfirmPickupProps {
     femaleDriverPreferred: boolean,
     verified: boolean,
     processing: boolean,
+    onRideCreated?: (rideId: string) => void,
 }
 
 export default function ConfirmPickup({
@@ -38,7 +38,6 @@ export default function ConfirmPickup({
     setPickupInput,
     destInput,
     moving,
-    prevRef,
     setPhase,
     riderId,
     price,
@@ -51,6 +50,7 @@ export default function ConfirmPickup({
     femaleDriverPreferred,
     verified,
     processing,
+    onRideCreated,
 }: ConfirmPickupProps) {
 
     const { forceClose } = useBottomSheet();
@@ -60,6 +60,7 @@ export default function ConfirmPickup({
 
     const windowWidth = Dimensions.get('window').width;
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     async function handleConfirmAndPay() {
@@ -108,7 +109,7 @@ export default function ConfirmPickup({
                 ? new firestore.GeoPoint(destCoords[1], destCoords[0])
                 : null;
 
-            await firestore().collection("rides").add({
+            const createdRide = await firestore().collection("rides").add({
                 accepted_at: null,
                 created_at: timestamp,
                 driver_id: null,
@@ -127,6 +128,7 @@ export default function ConfirmPickup({
                 estimated_time_required_minutes: duration,
                 silent_only: !!silentOnly,
             });
+            onRideCreated?.(createdRide.id);
 
             try {
                 const pickupEntry: SearchHistoryEntry | null =
@@ -176,7 +178,7 @@ export default function ConfirmPickup({
                 alignItems: 'center',
                 paddingHorizontal: 20,
                 paddingVertical: 10,
-                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                backgroundColor: Colors[themeKey].bgDark,
                 marginBottom: 10,
             }}>
                 <Text style={defaultStyles.title}>Confirm pick-up spot</Text>
@@ -186,7 +188,7 @@ export default function ConfirmPickup({
                     borderRadius: 10, 
                     marginTop: 15, 
                     paddingVertical: 10, 
-                    backgroundColor: Colors[colorScheme ?? "light"].bg,
+                    backgroundColor: Colors[themeKey].bg,
                     opacity: (moving || processing) ? 0.6 : 1,
                 }}
                 onPress={() => {
@@ -203,18 +205,18 @@ export default function ConfirmPickup({
                         <FontAwesomeIcon 
                             icon={faMagnifyingGlass} 
                             size={14} 
-                            color={Colors[colorScheme ?? "light"].textDull}
+                            color={Colors[themeKey].textDull}
                         />
                         <BottomSheetTextInput 
                             style={{
                                 width: "80%", 
                                 height: "100%", 
                                 fontSize: 18,
-                                color: Colors[colorScheme ?? "light"].textDull, 
+                                color: Colors[themeKey].textDull, 
                                 fontFamily:'Outfit_400Regular'
                             }} 
                             selectTextOnFocus
-                            placeholderTextColor={Colors[colorScheme ?? "light"].textDull} 
+                            placeholderTextColor={Colors[themeKey].textDull} 
                             value={pickupInput} 
                             onChangeText={setPickupInput}
                             editable={false}
@@ -229,17 +231,15 @@ export default function ConfirmPickup({
                     <TouchableOpacity 
                         onPress={() => {
                             setPhase(1)
-                            forceClose();
-                            prevRef.current?.snapToIndex(0)
                         }}
                         disabled={paying}
-                        style={{width: 50, height: 50, backgroundColor: Colors[colorScheme ?? "light"].bgBtn, borderRadius: 10, justifyContent: "center", alignItems: "center", opacity: paying ? 0.6 : 1}}>
-                        <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].textBtn}/>
+                        style={{width: 50, height: 50, backgroundColor: Colors[themeKey].bgBtn, borderRadius: 10, justifyContent: "center", alignItems: "center", opacity: paying ? 0.6 : 1}}>
+                        <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[themeKey].textBtn}/>
                     </TouchableOpacity>
                     <TouchableOpacity 
                         onPress={handleConfirmAndPay}
                         disabled={paying}
-                        style={{flex: 1, height: 50, backgroundColor: Colors[colorScheme ?? "light"].primary, borderRadius: 10, justifyContent: "center", alignItems: "center", opacity: paying ? 0.6 : 1}}>
+                        style={{flex: 1, height: 50, backgroundColor: Colors[themeKey].primary, borderRadius: 10, justifyContent: "center", alignItems: "center", opacity: paying ? 0.6 : 1}}>
                         <Text style={{fontSize: 18, fontWeight: 500, color: colorScheme == "light" ? Colors["light"].bgDark : Colors["light"].bgLight,}}>
                             {paying ? "Processing…" : "Confirm and pay"}
                         </Text>

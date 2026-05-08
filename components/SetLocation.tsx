@@ -22,7 +22,6 @@ interface SetLocationProps {
     pickupCoords: Position,
     destCoords: Position,
     moving: boolean,
-    nextRef: any,
     setDistance: React.Dispatch<React.SetStateAction<number>>,
     setDuration: React.Dispatch<React.SetStateAction<number>>,
     setPhase: React.Dispatch<React.SetStateAction<number>>,
@@ -56,7 +55,6 @@ async function obtainAddress(coords: Position,) {
 }
 
 export default function SetLocation({ 
-    nextRef, 
     toggle, 
     setToggle, 
     pickupInput, 
@@ -81,7 +79,7 @@ export default function SetLocation({
     onConfirmLocations,
     onPartialConfirmToggle,
 }: SetLocationProps) {
-    const { animatedPosition, animatedIndex, snapToIndex, forceClose } = useBottomSheet();
+    const { animatedPosition, snapToIndex } = useBottomSheet();
     const opacity = useSharedValue(1);
 
     const animatedStyle = useAnimatedStyle(() => {
@@ -104,6 +102,7 @@ export default function SetLocation({
 
     const windowWidth = Dimensions.get('window').width;
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     const titleText = toggle ? " destination" : " pick-up location";
@@ -117,7 +116,7 @@ export default function SetLocation({
                 alignItems: 'center',
                 paddingHorizontal: 20,
                 paddingVertical: 10,
-                backgroundColor: Colors[colorScheme ?? "light"].bgDark,
+                backgroundColor: Colors[themeKey].bgDark,
                 marginBottom: 10,
             }}>
                 <Text style={defaultStyles.title}>Set your{titleText}</Text>
@@ -127,7 +126,7 @@ export default function SetLocation({
                     borderRadius: 10, 
                     marginTop: 15, 
                     paddingVertical: 10, 
-                    backgroundColor: Colors[colorScheme ?? "light"].bg,
+                    backgroundColor: Colors[themeKey].bg,
                     opacity: moving ? 0.6 : 1,
                 }}
                 onPress={() => {
@@ -144,18 +143,18 @@ export default function SetLocation({
                         <FontAwesomeIcon 
                             icon={faMagnifyingGlass} 
                             size={14} 
-                            color={Colors[colorScheme ?? "light"].textDull}
+                            color={Colors[themeKey].textDull}
                         />
                         <BottomSheetTextInput 
                             style={{
                                 width: "80%", 
                                 height: "100%", 
                                 fontSize: 18,
-                                color: Colors[colorScheme ?? "light"].textDull, 
+                                color: Colors[themeKey].textDull, 
                                 fontFamily:'Outfit_400Regular'
                             }} 
                             selectTextOnFocus
-                            placeholderTextColor={Colors[colorScheme ?? "light"].textDull} 
+                            placeholderTextColor={Colors[themeKey].textDull} 
                             placeholder={placeholderText}
                             value={toggle ? destInput : pickupInput} 
                             onChangeText={toggle ? setDestInput : setPickupInput}
@@ -214,8 +213,6 @@ export default function SetLocation({
                                 );
 
                                 setPhase(1);
-                                forceClose();
-                                nextRef.current?.snapToIndex(0);
                             } catch (e) {
                                 setCoordinates([]);
                                 setWalkingCoordinates([]);

@@ -11,9 +11,10 @@ interface BackBtnProps {
 
 export default function BackBtn({onPress}: BackBtnProps) {
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     return (
-        <TouchableOpacity onPress={onPress} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[colorScheme ?? "light"].bgBtn}}>
-            <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[colorScheme ?? "light"].textBtn}/>
+        <TouchableOpacity onPress={onPress} style={{padding: 16, borderRadius: "100%", backgroundColor: Colors[themeKey].bgBtn}}>
+            <FontAwesomeIcon icon={faAngleLeft} size={20} color={Colors[themeKey].textBtn}/>
         </TouchableOpacity>
     )
 }

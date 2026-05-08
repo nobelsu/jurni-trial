@@ -44,6 +44,7 @@ function formatDateTime(timestamp: FirebaseFirestoreTypes.Timestamp | null): str
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   const colorScheme = useColorScheme();
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const defaultStyles = StyleDefault({ colorScheme });
   return (
     <View
@@ -81,8 +82,9 @@ function RideDetailsSheetContent({
   ratingStatus,
 }: RideDetailsSheetContentProps) {
   const colorScheme = useColorScheme();
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const defaultStyles = StyleDefault({ colorScheme });
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[themeKey];
 
   const { animatedPosition } = useBottomSheet();
   const windowHeight = Dimensions.get("window").height;
@@ -433,8 +435,9 @@ export default function RideDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const defaultStyles = StyleDefault({ colorScheme });
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[themeKey];
   const [ride, setRide] = useState<Ride | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

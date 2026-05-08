@@ -79,8 +79,9 @@ function groupRidesByDate(rides: Ride[]): { title: string; data: Ride[] }[] {
 
 export default function RideHistoryScreen() {
   const colorScheme = useColorScheme();
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const defaultStyles = StyleDefault({ colorScheme });
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[themeKey];
   const router = useRouter();
   const navigation = useNavigation();
 

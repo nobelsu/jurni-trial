@@ -12,12 +12,13 @@ interface ErrorProps {
 
 export default function Error({message, styleError}: ErrorProps) {
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
     return (
         <View style={{width: "100%", flexDirection: "row", alignItems: "center", gap: 6, ...styleError}}>
-            <FontAwesomeIcon icon={faExclamationCircle} size={14} color={Colors[colorScheme ?? "light"].primary}/>
+            <FontAwesomeIcon icon={faExclamationCircle} size={14} color={Colors[themeKey].primary}/>
             <Text style={{
-                color: Colors[colorScheme ?? "light"].primary, 
+                color: Colors[themeKey].primary, 
                 fontFamily: "Outfit_400Regular",
                 fontSize: 16,
             }}>{message}</Text>

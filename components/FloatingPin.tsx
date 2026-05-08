@@ -14,7 +14,8 @@ interface FloatingPinProps {
 
 export default function FloatingPin({ isDragging }: FloatingPinProps) {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
+  const theme = Colors[themeKey];
 
   const liftProgress = useSharedValue(0);
 

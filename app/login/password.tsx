@@ -16,6 +16,7 @@ import Error from '../../components/Error';
 export default function LoginPasswordScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
     const email = useGlobalSearchParams<{ email: string }>().email;
@@ -44,9 +45,9 @@ export default function LoginPasswordScreen() {
                         <Text style={defaultStyles.title}>Enter your password</Text>
                         <Text style={{...defaultStyles.subtitle, marginTop: 10,}}>We found an account that matches your mobile number</Text>
                         <View style={{marginTop: 20, height: 60,}}>
-                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[colorScheme ?? "light"].bg, gap: 12,}}>
-                                <FontAwesomeIcon icon={faLock} size={14} color={Colors[colorScheme ?? "light"].textMuted}/>
-                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[colorScheme ?? "light"].textMuted,}} placeholderTextColor={Colors[colorScheme ?? "light"].textDull} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[colorScheme ?? "light"].textMuted} value={password} onChangeText={setPassword}/>
+                            <View style={{flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "row", borderRadius: 15, backgroundColor: Colors[themeKey].bg, gap: 12,}}>
+                                <FontAwesomeIcon icon={faLock} size={14} color={Colors[themeKey].textMuted}/>
+                                <TextInput style={{width: "80%", height: "100%", fontSize: 16, fontFamily:'Outfit_400Regular', color: Colors[themeKey].textMuted,}} placeholderTextColor={Colors[themeKey].textDull} secureTextEntry placeholder='Password' autoFocus selectionColor={Colors[themeKey].textMuted} value={password} onChangeText={setPassword}/>
                             </View>
                         </View>
                         {errorVisibility && <Error message={errorMessage} styleError={{marginTop: 20,}} />}

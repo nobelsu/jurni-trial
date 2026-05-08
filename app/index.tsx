@@ -12,19 +12,20 @@ import * as SplashScreen from 'expo-splash-screen';
 export default function GettingStartedScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
     const windowHeight = Dimensions.get('window').height;
 
     return (
         <SafeAreaView style={defaultStyles.container}>
             {/* <View style={{flex: 1, paddingTop: 20, gap: 5,}}>
-                <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].text}}>jurni</Text>
-                <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].primary}}>welcome</Text>
+                <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[themeKey].text}}>jurni</Text>
+                <Text style={{fontSize: 14, fontFamily: "Outfit_900Black", color: Colors[themeKey].primary}}>welcome</Text>
             </View> 
             <View style={{flex: 4, gap: 4, paddingTop: windowHeight*0.21,}}>
-                <Text style={{fontSize: 20, fontFamily: "Outfit_400Regular", color: Colors[colorScheme ?? "light"].primaryText}}>more than a ride</Text>
+                <Text style={{fontSize: 20, fontFamily: "Outfit_400Regular", color: Colors[themeKey].primaryText}}>more than a ride</Text>
                 <View style={{alignItems: "center", width: "100%",}}>
-                    <Text style={{fontSize: 48, fontFamily: "Outfit_900Black", color: Colors[colorScheme ?? "light"].primaryText}}>it's a <Text style={{color: Colors[colorScheme ?? "light"].primary}}>jurni.</Text></Text>
+                    <Text style={{fontSize: 48, fontFamily: "Outfit_900Black", color: Colors[themeKey].primaryText}}>it's a <Text style={{color: Colors[themeKey].primary}}>jurni.</Text></Text>
                 </View>
             </View> */}
             <View style={{flex: 1, justifyContent: "center", alignItems: "center", width: "100%"}}>

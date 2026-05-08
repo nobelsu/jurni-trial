@@ -30,7 +30,7 @@ function hexToRgba(hex: string, alpha: number): string {
 
 export default function Route ({ coordinates } : RouteProps) {
   const colorScheme = useColorScheme()
-
+  const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const [animationProgress, setAnimationProgress] = useState(0);
 
   useEffect(() => {
@@ -74,17 +74,17 @@ export default function Route ({ coordinates } : RouteProps) {
   // #endregion
 
   const baseColor = useMemo(
-    () => hexToRgba(Colors[colorScheme ?? "light"].primary, 0.15),
+    () => hexToRgba(Colors[themeKey].primary, 0.15),
     [colorScheme],
   );
 
   const pulseColor = useMemo(
-    () => hexToRgba(Colors[colorScheme ?? "light"].primary, 1),
+    () => hexToRgba(Colors[themeKey].primary, 1),
     [colorScheme],
   );
 
   const transparentColor = useMemo(
-    () => hexToRgba(Colors[colorScheme ?? "light"].primary, 0),
+    () => hexToRgba(Colors[themeKey].primary, 0),
     [colorScheme],
   );
 

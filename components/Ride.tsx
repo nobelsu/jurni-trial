@@ -29,6 +29,7 @@ export default function RideComponent({id, selected, setSelected, nextRef, setPh
 
     const colorScheme = useColorScheme();
 
+    const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     async function reverseGeocodePickupForConfirm(coords: Position) {
         try {
             const url = "https://api.mapbox.com/search/geocode/v6/reverse";
@@ -68,26 +69,26 @@ export default function RideComponent({id, selected, setSelected, nextRef, setPh
                 if (!setSelected) return
                 else if (id != selected) setSelected(id);
             }}
-            style={{width: "100%", padding: 10, justifyContent: "center", alignItems: "center", borderRadius: 15, borderWidth: 3, borderColor: (id == selected) ? Colors[colorScheme ?? "light"].text : Colors[colorScheme ?? "light"].bgDark}}>
+            style={{width: "100%", padding: 10, justifyContent: "center", alignItems: "center", borderRadius: 15, borderWidth: 3, borderColor: (id == selected) ? Colors[themeKey].text : Colors[themeKey].bgDark}}>
             <View style={{flexDirection: "row"}}>
                 <View style={{height: 50, width: 80}}>
                 </View>
                 <View style={{flex: 2, gap: 8,}}>
                     <View style={{flexDirection: "row", alignItems: "center"}}>
-                        <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 18, fontWeight: 600, marginRight: 10,}}>{rideTypeMetadata[id]?.name}</Text>
-                        <FontAwesomeIcon icon={faUser} size={12} color={Colors[colorScheme ?? "light"].text} style={{marginRight: 4,}} />
-                        <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 14,}}>{rideTypeMetadata[id]?.passengers}</Text>
+                        <Text style={{color: Colors[themeKey].text, fontSize: 18, fontWeight: 600, marginRight: 10,}}>{rideTypeMetadata[id]?.name}</Text>
+                        <FontAwesomeIcon icon={faUser} size={12} color={Colors[themeKey].text} style={{marginRight: 4,}} />
+                        <Text style={{color: Colors[themeKey].text, fontSize: 14,}}>{rideTypeMetadata[id]?.passengers}</Text>
                     </View>
                     <View style={{flexDirection: "row", gap: 10,}}>
-                        <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 16,}}>{calculatePickupTime(rideTypeMetadata[id])}</Text>
-                        <Text style={{color: Colors[colorScheme ?? "light"].text, fontSize: 16,}}>{rideTypeMetadata[id]?.time} min</Text>
+                        <Text style={{color: Colors[themeKey].text, fontSize: 16,}}>{calculatePickupTime(rideTypeMetadata[id])}</Text>
+                        <Text style={{color: Colors[themeKey].text, fontSize: 16,}}>{rideTypeMetadata[id]?.time} min</Text>
                     </View>
                     {rideTypeMetadata[id]?.tags.map((tagId) => {
                         return (<Tag key={tagId} id={tagId}/>)
                     })}
                 </View>
                 <View style={{flex: 1}}>
-                    <Text style={{top: 0, right: 0, position: "absolute", color: Colors[colorScheme ?? "light"].text, fontWeight: 500, fontSize: 18,}}>{`£${calculateRideCost(rideTypeMetadata[id], distance, duration).toFixed(2)}`}</Text>
+                    <Text style={{top: 0, right: 0, position: "absolute", color: Colors[themeKey].text, fontWeight: 500, fontSize: 18,}}>{`£${calculateRideCost(rideTypeMetadata[id], distance, duration).toFixed(2)}`}</Text>
                 </View>
             </View>
         </TouchableOpacity>
