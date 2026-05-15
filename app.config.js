@@ -55,6 +55,7 @@ const expoConfig = {
               "RNFBAuth",
               "RNFBFirestore",
               "RNFBFunctions",
+              "RNFBDatabase",
             ],
           }
         }

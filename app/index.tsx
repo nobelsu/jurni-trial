@@ -4,7 +4,6 @@ import StyleDefault from '../constants/DefaultStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/Colors';
-import { Dimensions } from 'react-native';
 import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -14,7 +13,6 @@ export default function GettingStartedScreen() {
     const colorScheme = useColorScheme();
     const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
-    const windowHeight = Dimensions.get('window').height;
 
     return (
         <SafeAreaView style={defaultStyles.container}>

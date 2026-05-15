@@ -1,4 +1,4 @@
-import { View, Text, useColorScheme, TouchableOpacity } from 'react-native';
+import { View, Text, useColorScheme, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
 import { BottomSheetFooter, } from '@gorhom/bottom-sheet';
@@ -7,7 +7,6 @@ import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Dimensions } from 'react-native';
 import { setAccessToken, MapView, Camera, Viewport, LocationPuck, OnMapSteadyEvent, CameraGestureObserver, MarkerView } from '@rnmapbox/maps';
 
 import { pickupData, destinationData, rideTypeMetadata, } from '../../constants/MockData';
@@ -37,6 +36,17 @@ import { faApple } from '@fortawesome/free-brands-svg-icons/faApple';
 import { faEllipsisVertical } from '@fortawesome/free-solid-svg-icons/faEllipsisVertical';
 import FindingDriver from '../../components/FindingDriver';
 import firestore from '@react-native-firebase/firestore';
+import DriverOnWay from '../../components/DriverOnWay';
+import { subscribeDriverLocation, haversineMeters } from '../../lib/driverLocation';
+import { computeBBox } from '../../lib/shared-util';
+
+type AcceptedRideState = {
+    rideId: string;
+    driverId: string | null;
+    pickupLabel: string | null;
+    acceptedAtLabel: string | null;
+    pickupCoords: Position | null;
+};
 
 export default function MapScreen() {
     setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -50,12 +60,14 @@ export default function MapScreen() {
     const bottomSheetRef1 = useRef<BottomSheet>(null);
     const bottomSheetRef2 = useRef<BottomSheet>(null);
     const bottomSheetRef3 = useRef<BottomSheet>(null);
+    const bottomSheetRef4 = useRef<BottomSheet>(null);
 
     const snapPoints = useMemo(() =>  [260, "100%"], []);
     const snapPoints1 = useMemo(() => [320, 600], []);
     const snapPoints1List = [120, 390]
     const snapPoints2 = useMemo(() => [260], []);
     const snapPoints3 = useMemo(() => [360], []);
+    const snapPoints4 = useMemo(() => [340], []);
     const navigation = useNavigation();
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -81,8 +93,7 @@ export default function MapScreen() {
 
     const [phase, setPhase] = useState<number>(0);
 
-    const windowWidth = Dimensions.get('window').width;
-    const windowHeight = Dimensions.get('window').height;
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
     const [userLocation, setUserLocation] = useState<Position>([-1, -1]);
 
@@ -105,7 +116,27 @@ export default function MapScreen() {
 
     const [processing, setProcessing] = useState<boolean>(false);
     const [pendingRideId, setPendingRideId] = useState<string | null>(null);
+    const [acceptedRide, setAcceptedRide] = useState<AcceptedRideState | null>(null);
     const [cancellingRideRequest, setCancellingRideRequest] = useState<boolean>(false);
+
+    const [driverLocation, setDriverLocation] = useState<Position | null>(null);
+    const [driverRouteCoords, setDriverRouteCoords] = useState<Position[]>([]);
+    const [driverRouteDistanceKm, setDriverRouteDistanceKm] = useState<number>(0);
+    const [driverRouteDurationMin, setDriverRouteDurationMin] = useState<number>(0);
+    const lastRouteFetchPosRef = useRef<Position | null>(null);
+    const driverRouteBboxRef = useRef<{ ne: Position; sw: Position } | null>(null);
+    const pickupTargetRef = useRef<Position | null>(null);
+
+    const phase4PickupTarget = useMemo<Position | null>(() => {
+        const localValid =
+            Array.isArray(pickupCoords) &&
+            pickupCoords.length >= 2 &&
+            pickupCoords[0] !== -1 &&
+            pickupCoords[1] !== -1;
+        if (localValid) return pickupCoords;
+        if (acceptedRide?.pickupCoords) return acceptedRide.pickupCoords;
+        return null;
+    }, [pickupCoords, acceptedRide?.pickupCoords]);
 
     const auth = getAuth();
     const user = auth.currentUser;
@@ -165,6 +196,32 @@ export default function MapScreen() {
         setMoving(false);
         setRideOptionsVisible(false);
         setPendingRideId(null);
+        setAcceptedRide(null);
+        setDriverLocation(null);
+        setDriverRouteCoords([]);
+        setDriverRouteDistanceKm(0);
+        setDriverRouteDurationMin(0);
+        lastRouteFetchPosRef.current = null;
+        driverRouteBboxRef.current = null;
+    }, []);
+
+    const toAcceptedAtLabel = useCallback((rawAcceptedAt: any): string | null => {
+        if (!rawAcceptedAt) {
+            return null;
+        }
+        const acceptedDate =
+            typeof rawAcceptedAt?.toDate === "function"
+                ? rawAcceptedAt.toDate()
+                : rawAcceptedAt instanceof Date
+                    ? rawAcceptedAt
+                    : null;
+        if (!acceptedDate) {
+            return null;
+        }
+        return acceptedDate.toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+        });
     }, []);
 
     const handleCancelRideRequest = useCallback(async () => {
@@ -384,26 +441,146 @@ export default function MapScreen() {
     }, [phase]);
 
     useEffect(() => {
+        if (!pendingRideId || phase < 3) {
+            return;
+        }
+        const unsubscribe = firestore()
+            .collection("rides")
+            .doc(pendingRideId)
+            .onSnapshot(
+                (snapshot) => {
+                    if (!snapshot.exists) {
+                        return;
+                    }
+                    const ride = snapshot.data();
+                    if (!ride || ride.status !== "ACCEPTED") {
+                        return;
+                    }
+                    const pickupGeopoint = ride.pickup_geopoint;
+                    const pickupGeoLng =
+                        pickupGeopoint && typeof pickupGeopoint.longitude === "number" && Number.isFinite(pickupGeopoint.longitude)
+                            ? pickupGeopoint.longitude
+                            : null;
+                    const pickupGeoLat =
+                        pickupGeopoint && typeof pickupGeopoint.latitude === "number" && Number.isFinite(pickupGeopoint.latitude)
+                            ? pickupGeopoint.latitude
+                            : null;
+                    const pickupCoordsFromRide: Position | null =
+                        pickupGeoLng !== null && pickupGeoLat !== null
+                            ? [pickupGeoLng, pickupGeoLat]
+                            : null;
+                    setAcceptedRide({
+                        rideId: snapshot.id,
+                        driverId: typeof ride.driver_id === "string" && ride.driver_id.length > 0 ? ride.driver_id : null,
+                        pickupLabel: typeof ride.pickup === "string" && ride.pickup.length > 0 ? ride.pickup : null,
+                        acceptedAtLabel: toAcceptedAtLabel(ride.accepted_at),
+                        pickupCoords: pickupCoordsFromRide,
+                    });
+                    setPhase(4);
+                },
+                (error) => {
+                    console.log("Failed to listen for ride acceptance", error);
+                }
+            );
+
+        return () => unsubscribe();
+    }, [pendingRideId, phase, toAcceptedAtLabel]);
+
+    useEffect(() => {
+        pickupTargetRef.current = phase4PickupTarget;
+    }, [phase4PickupTarget]);
+
+    const refreshDriverRoute = useCallback(async (driverPos: Position) => {
+        const last = lastRouteFetchPosRef.current;
+        if (last && haversineMeters(last, driverPos) <= 100) {
+            return;
+        }
+        const target = pickupTargetRef.current;
+        if (!target) {
+            return;
+        }
+        lastRouteFetchPosRef.current = driverPos;
+        try {
+            const res = await obtainDirections(driverPos, target);
+            if (res.kind !== "ok") {
+                setDriverRouteCoords([]);
+                setDriverRouteDistanceKm(0);
+                setDriverRouteDurationMin(0);
+                return;
+            }
+            setDriverRouteCoords(res.coordinates as Position[]);
+            setDriverRouteDistanceKm(res.distance);
+            setDriverRouteDurationMin(res.duration);
+            const latLngCoords: [number, number][] = (res.coordinates as Position[]).map(
+                ([lng, lat]) => [lat, lng]
+            );
+            const bbox = computeBBox(latLngCoords);
+            const ne: Position = [bbox.maxLng, bbox.maxLat];
+            const sw: Position = [bbox.minLng, bbox.minLat];
+            driverRouteBboxRef.current = { ne, sw };
+            camera.current?.fitBounds(ne, sw, [70, 70, 340, 70], 800);
+        } catch (err) {
+            console.log("Failed to fetch driver-to-pickup directions", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (phase !== 4 || !acceptedRide?.driverId) {
+            return;
+        }
+        const unsubscribe = subscribeDriverLocation(acceptedRide.driverId, ({ lng, lat }) => {
+            const driverPos: Position = [lng, lat];
+            setDriverLocation(driverPos);
+            void refreshDriverRoute(driverPos);
+        });
+        return () => unsubscribe();
+    }, [phase, acceptedRide?.driverId, refreshDriverRoute]);
+
+    useEffect(() => {
+        if (phase !== 4 || !driverLocation || lastRouteFetchPosRef.current) {
+            return;
+        }
+        if (!phase4PickupTarget) {
+            return;
+        }
+        void refreshDriverRoute(driverLocation);
+    }, [phase, driverLocation, phase4PickupTarget, refreshDriverRoute]);
+
+    useEffect(() => {
         if (phase === 1) {
             bottomSheetRef1.current?.snapToIndex(0);
             bottomSheetRef.current?.close();
             bottomSheetRef2.current?.close();
             bottomSheetRef3.current?.close();
+            bottomSheetRef4.current?.close();
         } else if (phase === 2) {
             bottomSheetRef2.current?.snapToIndex(0);
             bottomSheetRef.current?.close();
             bottomSheetRef1.current?.close();
             bottomSheetRef3.current?.close();
+            bottomSheetRef4.current?.close();
         } else if (phase === 3) {
             bottomSheetRef3.current?.snapToIndex(0);
             bottomSheetRef.current?.close();
             bottomSheetRef1.current?.close();
             bottomSheetRef2.current?.close();
+            bottomSheetRef4.current?.close();
+        } else if (phase === 4) {
+            bottomSheetRef4.current?.snapToIndex(0);
+            bottomSheetRef.current?.close();
+            bottomSheetRef1.current?.close();
+            bottomSheetRef2.current?.close();
+            bottomSheetRef3.current?.close();
+            const bbox = driverRouteBboxRef.current;
+            if (bbox) {
+                camera.current?.fitBounds(bbox.ne, bbox.sw, [70, 70, 340, 70], 800);
+            }
         } else if (phase === 0) {
             bottomSheetRef.current?.snapToIndex(0);
             bottomSheetRef1.current?.close();
             bottomSheetRef2.current?.close();
             bottomSheetRef3.current?.close();
+            bottomSheetRef4.current?.close();
         }
     }, [phase]);
 
@@ -485,6 +662,31 @@ export default function MapScreen() {
                     </>
                 )}
                 {(phase == 2 && styleLoaded) && <RouteWalking key={colorScheme} coordinates={walkingCoordinates} />}
+                {(phase == 4 && styleLoaded && driverRouteCoords.length > 1) && (
+                    <Route key={`driver-${colorScheme}`} coordinates={driverRouteCoords} />
+                )}
+                {(phase == 4 && styleLoaded && phase4PickupTarget) && (
+                    <MarkerView
+                        key={`phase4-pickup-${colorScheme}`}
+                        id="phase4-pickup"
+                        coordinate={phase4PickupTarget}
+                        allowOverlapWithPuck={true}
+                        allowOverlap={true}
+                    >
+                        <RouteEndpointPin type="end" />
+                    </MarkerView>
+                )}
+                {(phase == 4 && styleLoaded && driverLocation) && (
+                    <MarkerView
+                        key={`phase4-driver-${colorScheme}`}
+                        id="phase4-driver"
+                        coordinate={driverLocation}
+                        allowOverlapWithPuck={true}
+                        allowOverlap={true}
+                    >
+                        <RouteEndpointPin type="start" />
+                    </MarkerView>
+                )}
                 {(phase == 0) && <LocationPuck puckBearing='heading' puckBearingEnabled scale={0.7}/>}
                 <Camera 
                     defaultSettings={{
@@ -770,6 +972,26 @@ export default function MapScreen() {
                         void handleCancelRideRequest();
                     }
                 }} />
+            </BottomSheet>
+            <BottomSheet
+                ref={bottomSheetRef4}
+                index={-1}
+                backgroundStyle={{backgroundColor: Colors[theme].bgDark}}
+                handleIndicatorStyle={{backgroundColor: Colors[theme].text}}
+                enableDynamicSizing={false}
+                enableHandlePanningGesture={false}
+                enableContentPanningGesture={false}
+                enablePanDownToClose={false}
+                snapPoints={snapPoints4}
+                topInset={150}
+                containerStyle={{zIndex: 10000}}
+            >
+                <DriverOnWay
+                    pickupLabel={acceptedRide?.pickupLabel ?? null}
+                    acceptedAtLabel={acceptedRide?.acceptedAtLabel ?? null}
+                    distanceKm={driverRouteDistanceKm}
+                    durationMinutes={driverRouteDurationMin}
+                />
             </BottomSheet>
         </GestureHandlerRootView>
     )
