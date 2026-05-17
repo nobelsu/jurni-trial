@@ -11,7 +11,7 @@ import firestore from '@react-native-firebase/firestore';
 
 import auth, { linkWithCredential } from '@react-native-firebase/auth';
 
-import { useState } from 'react';
+import { useState } from "react";
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
 import type { UserSettings, UserGender } from "../../lib/users";
@@ -24,21 +24,37 @@ export default function ConfirmPasswordScreen() {
     const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
     const defaultStyles = StyleDefault({ colorScheme });
 
-    const user = auth().currentUser;
-
     const params = useGlobalSearchParams<{ email: string, password : string, name: string, gender?: string }>();
 
     const [passwordConfirm, setPasswordConfirm] = useState<string>("");
+    const [submitting, setSubmitting] = useState<boolean>(false);
 
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [errorVisibility, setErrorVisibility] = useState<boolean>(false);
 
     async function handleAddPassword() {
-        if (params.password == passwordConfirm) {
-            setErrorMessage("");
-            setErrorVisibility(false);
-            if (!user) return;
-            await linkWithCredential(user, auth.EmailAuthProvider.credential(params.email, params.password));
+        if (params.password !== passwordConfirm) {
+            setErrorMessage("Passwords do not match.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        const currentUser = auth().currentUser;
+        if (!currentUser) {
+            setErrorMessage("Your session expired. Please sign in again.");
+            setErrorVisibility(true);
+            return;
+        }
+
+        setErrorMessage("");
+        setErrorVisibility(false);
+        setSubmitting(true);
+
+        try {
+            await linkWithCredential(
+                currentUser,
+                auth.EmailAuthProvider.credential(params.email, params.password)
+            );
 
             const initialSettings: UserSettings = {
                 default_ride_type: "basic",
@@ -62,8 +78,9 @@ export default function ConfirmPasswordScreen() {
                     : "prefer_not_to_say";
             const driverGender: DriverGender = gender;
 
-            await firestore().collection("users").doc(user.uid).set({
+            await firestore().collection("users").doc(currentUser.uid).set({
                 verified: false,
+                active_ride_id: null,
                 metadata: {
                     favourites: [],
                     pickup_history: [],
@@ -75,16 +92,21 @@ export default function ConfirmPasswordScreen() {
                 },
                 settings: initialSettings,
             });
-            await saveInitialDriverDocument(user.uid, {
+            await saveInitialDriverDocument(currentUser.uid, {
                 name: params.name,
                 gender: driverGender,
                 email: params.email,
             });
 
-            router.navigate('home/map');
-        } else {
-            setErrorMessage("Passwords do not match.");
+            router.navigate("home/map");
+        } catch (error) {
+            console.error("Registration failed:", error);
+            setErrorMessage(
+                "Could not finish registration. Check your connection and try again."
+            );
             setErrorVisibility(true);
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -109,7 +131,7 @@ export default function ConfirmPasswordScreen() {
                             <BackBtn onPress={() => {router.push("register/password")}}/>
                         </View>
                         <View style={{flex: 1, justifyContent: "center", alignItems: "flex-end", width: "100%"}}>
-                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Register" onPress={handleAddPassword} />
+                            <Btn styleBtn={{width: "80%", borderRadius: 100,}} text="Register" onPress={handleAddPassword} disabled={submitting} />
                         </View>
                     </View>
                 </KeyboardAvoidingView>

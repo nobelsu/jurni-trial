@@ -1,9 +1,56 @@
+import { getApp } from "@react-native-firebase/app";
 import { getDatabase, ref, onValue } from "@react-native-firebase/database";
 import type { Position } from "./mapbox";
+
+/** Regional RTDB instance for jurni-71656 (must match GoogleService-Info / google-services). */
+const JURNI_DATABASE_URL =
+  "https://jurni-71656-default-rtdb.europe-west1.firebasedatabase.app";
+
+function getRtdb() {
+  const app = getApp();
+  return getDatabase(app, app.options.databaseURL ?? JURNI_DATABASE_URL);
+}
 
 export interface DriverLocationUpdate {
   lng: number;
   lat: number;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * Parses lat/lng from RTDB driver location payloads. Supports top-level or
+ * nested `location`, and `lat`/`lng` or `latitude`/`longitude` field names.
+ */
+export function parseDriverLocationPayload(
+  value: unknown
+): DriverLocationUpdate | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const root = value as Record<string, unknown>;
+  const nested =
+    root.location && typeof root.location === "object"
+      ? (root.location as Record<string, unknown>)
+      : null;
+
+  const sources: Record<string, unknown>[] = nested ? [root, nested] : [root];
+
+  for (const source of sources) {
+    const lat = toFiniteNumber(source.lat ?? source.latitude);
+    const lng = toFiniteNumber(source.lng ?? source.longitude);
+    if (lat !== null && lng !== null) {
+      return { lat, lng };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -15,35 +62,38 @@ export interface DriverLocationUpdate {
  */
 export function subscribeDriverLocation(
   driverId: string,
-  onUpdate: (location: DriverLocationUpdate) => void
+  onUpdate: (location: DriverLocationUpdate) => void,
+  onError?: (error: Error) => void
 ): () => void {
   if (!driverId) {
     return () => {};
   }
 
-  const db = getDatabase();
+  const db = getRtdb();
   const driverRef = ref(db, `driverLocations/${driverId}`);
+  let loggedFirstRead = false;
 
   const unsubscribe = onValue(
     driverRef,
     (snapshot) => {
-      const value = snapshot.val();
-      if (!value || typeof value !== "object") {
+      const parsed = parseDriverLocationPayload(snapshot.val());
+      if (!parsed) {
         return;
       }
-      const lat = (value as { lat?: unknown }).lat;
-      const lng = (value as { lng?: unknown }).lng;
-      if (
-        typeof lat === "number" &&
-        Number.isFinite(lat) &&
-        typeof lng === "number" &&
-        Number.isFinite(lng)
-      ) {
-        onUpdate({ lat, lng });
+      if (__DEV__ && !loggedFirstRead) {
+        loggedFirstRead = true;
+        console.log(
+          `[driverLocation] subscribed driverLocations/${driverId}`,
+          parsed
+        );
       }
+      onUpdate(parsed);
     },
     (error) => {
-      console.log("Failed to subscribe to driver location", error);
+      const err =
+        error instanceof Error ? error : new Error(String(error ?? "unknown"));
+      console.log("Failed to subscribe to driver location", err);
+      onError?.(err);
     }
   );
 

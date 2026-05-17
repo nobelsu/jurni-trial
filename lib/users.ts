@@ -33,6 +33,7 @@ export type UserSettings = {
 
 type UserDoc = {
   verified?: boolean;
+  active_ride_id?: string | null;
   recent_searches?: SearchHistoryEntry[];
   metadata?: {
     name?: string;
@@ -51,6 +52,43 @@ type UserDoc = {
 async function getUserDoc(uid: string): Promise<UserDoc> {
   const snap = await firestore().collection("users").doc(uid).get();
   return snap.data() as UserDoc;
+}
+
+export async function getUserActiveRideId(uid: string): Promise<string | null> {
+  if (!uid) return null;
+  const data = await getUserDoc(uid);
+  const id = data?.active_ride_id;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+export async function setUserActiveRideId(
+  uid: string,
+  rideId: string
+): Promise<void> {
+  if (!uid || !rideId) {
+    throw new Error("Missing uid or ride id");
+  }
+  await firestore().collection("users").doc(uid).update({
+    active_ride_id: rideId,
+  });
+}
+
+export async function clearUserActiveRideId(uid: string): Promise<void> {
+  if (!uid) return;
+  await firestore().collection("users").doc(uid).update({
+    active_ride_id: null,
+  });
+}
+
+/** Adds active_ride_id when an older users doc is missing it. */
+export async function ensureUserActiveRideField(uid: string): Promise<void> {
+  if (!uid) return;
+  const ref = firestore().collection("users").doc(uid);
+  const snap = await ref.get();
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if (data && "active_ride_id" in data) return;
+  await ref.update({ active_ride_id: null });
 }
 
 function normalizeHistory(

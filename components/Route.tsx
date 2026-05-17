@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Position } from "../lib/mapbox";
 import { LineLayer, ShapeSource } from "@rnmapbox/maps";
 import { Colors } from "../constants/Colors";
@@ -31,47 +31,7 @@ function hexToRgba(hex: string, alpha: number): string {
 export default function Route ({ coordinates } : RouteProps) {
   const colorScheme = useColorScheme()
   const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
-  const [animationProgress, setAnimationProgress] = useState(0);
-
-  useEffect(() => {
-    if (!coordinates || coordinates.length < 2) return;
-
-    let frameId: number;
-    const durationMs = 2000;
-    const startTime = Date.now();
-
-    const loop = () => {
-      const elapsed = (Date.now() - startTime) % durationMs;
-      const progress = elapsed / durationMs;
-      setAnimationProgress(progress);
-      frameId = requestAnimationFrame(loop);
-    };
-
-    frameId = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-    };
-  }, [coordinates]);
-
-  // #region agent log
-  fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '4e9209',
-    },
-    body: JSON.stringify({
-      sessionId: '4e9209',
-      runId: 'initial',
-      hypothesisId: 'H2',
-      location: 'components/Route.tsx:31',
-      message: 'Route LineLayer render',
-      data: { coordCount: coordinates.length },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+  const animationProgress = 0.5;
 
   const baseColor = useMemo(
     () => hexToRgba(Colors[themeKey].primary, 0.15),

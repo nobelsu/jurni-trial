@@ -19,7 +19,7 @@ import { Colors } from "../../../constants/Colors";
 import StyleDefault from "../../../constants/DefaultStyles";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type { Ride } from "../../../lib/rides";
-import { getRideTypeDisplayName, parseRouteCoordinates } from "../../../lib/rides";
+import { getRideTypeDisplayName, parseRideSecret, parseRouteCoordinates } from "../../../lib/rides";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 import { faCircleDot } from "@fortawesome/free-solid-svg-icons/faCircleDot";
@@ -117,6 +117,7 @@ export default function RideHistoryScreen() {
               type_id: d.type_id ?? "basic",
               price: typeof d.price === "number" ? d.price : 0,
               status: d.status ?? "",
+              secret: parseRideSecret(d.secret),
               driver_id:
                 typeof d.driver_id === "string" && d.driver_id.length > 0
                   ? d.driver_id
@@ -163,7 +164,7 @@ export default function RideHistoryScreen() {
   }, [loadRides]);
 
   const filteredRides = useMemo(() => {
-    let result = rides;
+    let result = rides.filter((r) => !!r.driver_id);
     if (activeFilter === "completed") {
       result = result.filter((r) => !!r.ended_at);
     } else if (activeFilter === "active") {

@@ -1,189 +1,287 @@
-import { StyleSheet, Text, useColorScheme, View } from "react-native";
-import { useMemo } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
+import { useMemo, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faPhone } from "@fortawesome/free-solid-svg-icons/faPhone";
+import { faComment } from "@fortawesome/free-solid-svg-icons/faComment";
+import { faShareNodes } from "@fortawesome/free-solid-svg-icons/faShareNodes";
+import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
+import { faChevronUp } from "@fortawesome/free-solid-svg-icons/faChevronUp";
 import { Colors } from "../constants/Colors";
-import StyleDefault from "../constants/DefaultStyles";
+import type { DriverRouteStatus } from "../lib/rides";
+import DriverCard from "./DriverCard";
+import RideTimeline from "./RideTimeline";
 
 interface DriverOnWayProps {
   pickupLabel?: string | null;
-  acceptedAtLabel?: string | null;
-  distanceKm?: number;
+  destinationLabel?: string | null;
   durationMinutes?: number;
+  routeStatus?: DriverRouteStatus;
+  secret?: string | null;
+  tripStarted?: boolean;
+  driverName?: string;
+  driverRating?: number | null;
+  vehicleDescription?: string;
+  onCall?: () => void;
+  onMessage?: () => void;
+  onSharePin?: () => void;
+  onCancelRide?: () => void;
+  cancelling?: boolean;
 }
 
-function formatDistanceKm(distanceKm: number | undefined): string {
-  if (typeof distanceKm !== "number" || !Number.isFinite(distanceKm) || distanceKm <= 0) {
-    return "—";
+function formatDurationMinutes(durationMinutes: number | undefined): number | null {
+  if (
+    typeof durationMinutes !== "number" ||
+    !Number.isFinite(durationMinutes) ||
+    durationMinutes <= 0
+  ) {
+    return null;
   }
-  if (distanceKm < 1) {
-    return `${Math.round(distanceKm * 1000)} m`;
-  }
-  return `${distanceKm.toFixed(distanceKm < 10 ? 1 : 0)} km`;
+  return Math.max(1, Math.round(durationMinutes));
 }
 
-function formatDurationMinutes(durationMinutes: number | undefined): string {
-  if (typeof durationMinutes !== "number" || !Number.isFinite(durationMinutes) || durationMinutes <= 0) {
-    return "—";
+function buildHeroLabel(
+  tripStarted: boolean,
+  minutes: number | null,
+  routeStatus: DriverRouteStatus
+): string {
+  if (routeStatus === "waiting_location") {
+    return "Waiting for driver location…";
   }
-  const rounded = Math.max(1, Math.round(durationMinutes));
-  if (rounded < 60) {
-    return `${rounded} min`;
+  if (routeStatus === "error") {
+    return "Can't load driver location";
   }
-  const hours = Math.floor(rounded / 60);
-  const minutes = rounded % 60;
-  if (minutes === 0) {
-    return `${hours} h`;
+  if (routeStatus === "loading" || minutes == null) {
+    return "Calculating…";
   }
-  return `${hours} h ${minutes} min`;
-}
-
-function formatEta(durationMinutes: number | undefined): string {
-  if (typeof durationMinutes !== "number" || !Number.isFinite(durationMinutes) || durationMinutes <= 0) {
-    return "—";
+  if (tripStarted) {
+    return `${minutes} min to destination`;
   }
-  const arrival = new Date(Date.now() + durationMinutes * 60000);
-  return arrival.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return `Pickup in ${minutes} min`;
 }
 
 export default function DriverOnWay({
   pickupLabel,
-  acceptedAtLabel,
-  distanceKm,
+  destinationLabel,
   durationMinutes,
+  routeStatus = "waiting_location",
+  secret,
+  tripStarted = false,
+  driverName = "Your driver",
+  driverRating = null,
+  vehicleDescription = "Vehicle details coming soon",
+  onCall,
+  onMessage,
+  onSharePin,
+  onCancelRide,
+  cancelling = false,
 }: DriverOnWayProps) {
   const colorScheme = useColorScheme();
   const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
   const theme = Colors[themeKey];
-  const defaultStyles = StyleDefault({ colorScheme });
+  const [pinExpanded, setPinExpanded] = useState(false);
 
-  const etaLabel = useMemo(() => formatEta(durationMinutes), [durationMinutes]);
-  const distanceLabel = useMemo(() => formatDistanceKm(distanceKm), [distanceKm]);
-  const durationLabel = useMemo(() => formatDurationMinutes(durationMinutes), [durationMinutes]);
+  const minutes = formatDurationMinutes(durationMinutes);
+  const heroLabel = buildHeroLabel(tripStarted, minutes, routeStatus);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           paddingHorizontal: 20,
-          paddingTop: 10,
-          paddingBottom: 28,
+          paddingTop: 4,
           backgroundColor: theme.bgDark,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
         },
-        handle: {
-          width: 44,
-          height: 5,
-          borderRadius: 999,
-          backgroundColor: theme.textDull,
-          opacity: 0.4,
-          marginBottom: 16,
-          alignSelf: "center",
-        },
-        meta: {
-          fontFamily: "Outfit_500Medium",
-          fontSize: 11,
-          letterSpacing: 2.2,
-          color: theme.textDull,
-          textTransform: "uppercase",
-          marginBottom: 6,
-          textAlign: "center",
-        },
-        title: {
-          ...defaultStyles.title,
-          textAlign: "center",
-          marginBottom: 10,
-        },
-        subtitle: {
-          fontFamily: "Outfit_400Regular",
-          fontSize: 15,
-          lineHeight: 22,
-          color: theme.textMuted,
-          textAlign: "center",
+        hero: {
+          fontFamily: "Outfit_600SemiBold",
+          fontSize: 28,
+          color: theme.text,
           marginBottom: 16,
         },
-        statsRow: {
+        driverSection: {
+          borderRadius: 14,
+          padding: 14,
+          backgroundColor: theme.bg,
+          marginBottom: 12,
+          gap: 12,
+        },
+        actionsRow: {
           flexDirection: "row",
-          gap: 10,
+          justifyContent: "space-around",
+          paddingTop: 4,
+        },
+        actionButton: {
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: theme.bgDark,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        actionLabel: {
+          fontFamily: "Outfit_400Regular",
+          fontSize: 11,
+          color: theme.textMuted,
+          marginTop: 4,
+          textAlign: "center",
+        },
+        actionCol: {
+          alignItems: "center",
+        },
+        timelineCard: {
+          borderRadius: 14,
+          padding: 14,
+          backgroundColor: theme.bg,
           marginBottom: 12,
         },
-        statCard: {
-          flex: 1,
-          borderRadius: 14,
-          paddingHorizontal: 12,
-          paddingVertical: 12,
-          backgroundColor: theme.bg,
-          gap: 6,
-        },
-        statLabel: {
-          fontFamily: "Outfit_500Medium",
-          fontSize: 11,
-          color: theme.textDull,
-          textTransform: "uppercase",
-          letterSpacing: 1.3,
-        },
-        statValue: {
-          fontFamily: "Outfit_500Medium",
-          fontSize: 16,
-          color: theme.text,
-        },
-        card: {
-          width: "100%",
+        pinRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           borderRadius: 14,
           paddingHorizontal: 14,
           paddingVertical: 12,
           backgroundColor: theme.bg,
-          gap: 8,
+          marginBottom: 12,
         },
-        cardLabel: {
+        pinLabel: {
           fontFamily: "Outfit_500Medium",
-          fontSize: 12,
-          color: theme.textDull,
-          textTransform: "uppercase",
-          letterSpacing: 1.3,
-        },
-        cardValue: {
-          fontFamily: "Outfit_500Medium",
-          fontSize: 16,
+          fontSize: 15,
           color: theme.text,
         },
-        helper: {
+        pinCode: {
+          fontFamily: "Outfit_600SemiBold",
+          fontSize: 32,
+          letterSpacing: 8,
+          color: theme.text,
+          textAlign: "center",
+          marginVertical: 8,
+        },
+        pinHelper: {
           fontFamily: "Outfit_400Regular",
           fontSize: 13,
           color: theme.textMuted,
+          textAlign: "center",
+        },
+        cancelButton: {
+          alignItems: "center",
+          paddingVertical: 12,
+        },
+        cancelText: {
+          fontFamily: "Outfit_500Medium",
+          fontSize: 15,
+          color: theme.textMuted,
         },
       }),
-    [defaultStyles.title, theme.bg, theme.bgDark, theme.text, theme.textDull, theme.textMuted]
+    [theme.bg, theme.bgDark, theme.text, theme.textMuted]
   );
+
+  const pickup = pickupLabel || "Pickup location";
+  const destination = destinationLabel || "Destination";
 
   return (
     <View style={styles.container}>
-      <View style={styles.handle} />
-      <Text style={styles.meta}>Matched</Text>
-      <Text style={styles.title}>Driver on the way</Text>
-      <Text style={styles.subtitle}>Your driver has accepted your request and is heading to your pick up location.</Text>
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>ETA</Text>
-          <Text style={styles.statValue}>{etaLabel}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Distance</Text>
-          <Text style={styles.statValue}>{distanceLabel}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Arrives in</Text>
-          <Text style={styles.statValue}>{durationLabel}</Text>
+      <Text style={styles.hero}>{heroLabel}</Text>
+
+      <View style={styles.driverSection}>
+        <DriverCard
+          name={driverName}
+          rating={driverRating}
+          vehicleLabel={vehicleDescription}
+        />
+        <View style={styles.actionsRow}>
+          <View style={styles.actionCol}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onCall}
+              accessibilityRole="button"
+              accessibilityLabel="Call driver"
+            >
+              <FontAwesomeIcon icon={faPhone} size={18} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={styles.actionLabel}>Call</Text>
+          </View>
+          <View style={styles.actionCol}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onMessage}
+              accessibilityRole="button"
+              accessibilityLabel="Message driver"
+            >
+              <FontAwesomeIcon icon={faComment} size={18} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={styles.actionLabel}>Message</Text>
+          </View>
+          {!tripStarted && secret ? (
+            <View style={styles.actionCol}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={onSharePin}
+                accessibilityRole="button"
+                accessibilityLabel="Share trip PIN"
+              >
+                <FontAwesomeIcon icon={faShareNodes} size={18} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={styles.actionLabel}>Share PIN</Text>
+            </View>
+          ) : null}
         </View>
       </View>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Pick up</Text>
-        <Text style={styles.cardValue}>{pickupLabel || "Preparing pickup details..."}</Text>
-        {acceptedAtLabel ? (
-          <Text style={styles.helper}>Accepted at {acceptedAtLabel}</Text>
-        ) : (
-          <Text style={styles.helper}>Route is being prepared.</Text>
-        )}
+
+      <View style={styles.timelineCard}>
+        <RideTimeline
+          pickupLabel={pickup}
+          destinationLabel={destination}
+          tripStarted={tripStarted}
+        />
       </View>
+
+      {!tripStarted && secret ? (
+        <TouchableOpacity
+          style={styles.pinRow}
+          onPress={() => setPinExpanded((v) => !v)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.pinLabel}>Trip PIN · {secret}</Text>
+          <FontAwesomeIcon
+            icon={pinExpanded ? faChevronUp : faChevronDown}
+            size={14}
+            color={theme.textMuted}
+          />
+        </TouchableOpacity>
+      ) : null}
+      {!tripStarted && secret && pinExpanded ? (
+        <View style={[styles.pinRow, { flexDirection: "column", marginTop: -8 }]}>
+          <Text style={styles.pinCode}>{secret}</Text>
+          <Text style={styles.pinHelper}>
+            Give this code to your driver when they arrive.
+          </Text>
+        </View>
+      ) : null}
+
+      {onCancelRide ? (
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={onCancelRide}
+          disabled={cancelling}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel ride"
+        >
+          {cancelling ? (
+            <ActivityIndicator color={theme.textMuted} />
+          ) : (
+            <Text style={styles.cancelText}>Cancel ride</Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

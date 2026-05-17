@@ -14,6 +14,7 @@ export function buildInitialDriverDocument(input: {
   email: string;
 }) {
   return {
+    active_ride_id: null,
     verified: false,
     createdAt: firestore.FieldValue.serverTimestamp(),
     updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -49,4 +50,15 @@ export async function saveInitialDriverDocument(
     .collection(DRIVERS_COLLECTION)
     .doc(uid)
     .set(buildInitialDriverDocument(input));
+}
+
+/** Adds active_ride_id when an older drivers doc is missing it. */
+export async function ensureDriverActiveRideField(uid: string): Promise<void> {
+  if (!uid) return;
+  const ref = firestore().collection(DRIVERS_COLLECTION).doc(uid);
+  const snap = await ref.get();
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if (data && "active_ride_id" in data) return;
+  await ref.update({ active_ride_id: null });
 }

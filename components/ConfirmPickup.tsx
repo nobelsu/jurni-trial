@@ -7,6 +7,7 @@ import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons/faMagnifyin
 import { faAngleLeft } from "@fortawesome/free-solid-svg-icons/faAngleLeft";
 import firestore from "@react-native-firebase/firestore";
 import { RideTypeId } from "../lib/cost";
+import { generateRideSecret } from "../lib/rides";
 import { useState } from "react";
 import type { Position } from "../lib/mapbox";
 import { addToPickupHistory, addToDestinationHistory, SearchHistoryEntry } from "../lib/users";
@@ -117,6 +118,7 @@ export default function ConfirmPickup({
                 female_driver_preferred: !!femaleDriverPreferred,
                 price,
                 rider_id: riderId,
+                secret: generateRideSecret(),
                 started_at: null,
                 status: "PENDING",
                 type_id: typeId,
@@ -164,8 +166,15 @@ export default function ConfirmPickup({
                 console.log("Failed to update search history from ride", e);
             }
             setPhase(3);
-        } catch (e) {
-            setPayError(e instanceof Error ? e.message : "Failed to create ride. Please try again.");
+        } catch (e: unknown) {
+            const message =
+                e && typeof e === "object" && "code" in e && typeof (e as { code: string }).code === "string"
+                    ? `${(e as { code: string }).code}: ${e instanceof Error ? e.message : "Failed to create ride."}`
+                    : e instanceof Error
+                      ? e.message
+                      : "Failed to create ride. Please try again.";
+            setPayError(message);
+            console.log("Confirm and pay failed", e);
         } finally {
             setPaying(false);
         }

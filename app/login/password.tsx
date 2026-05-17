@@ -12,6 +12,8 @@ import { useState } from 'react';
 import auth, { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import BackBtn from '../../components/BackButton';
 import Error from '../../components/Error';
+import { ensureDriverActiveRideField } from "../../lib/registerDriver";
+import { ensureUserActiveRideField } from "../../lib/users";
 
 export default function LoginPasswordScreen() {
     const router = useRouter();
@@ -29,7 +31,9 @@ export default function LoginPasswordScreen() {
         try {
             setErrorMessage("");
             setErrorVisibility(false);
-            await signInWithEmailAndPassword(auth(), email, password);
+            const credential = await signInWithEmailAndPassword(auth(), email, password);
+            await ensureDriverActiveRideField(credential.user.uid);
+            await ensureUserActiveRideField(credential.user.uid);
             router.navigate('home/map');
         } catch(error) {
             setErrorMessage("Please check your password and try again.");

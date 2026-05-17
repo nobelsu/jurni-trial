@@ -11,24 +11,6 @@ interface RouteWalkingProps {
 export default function RouteWalking ({ coordinates } : RouteWalkingProps) {
   const colorScheme = useColorScheme()
   const themeKey: keyof typeof Colors = colorScheme === "dark" ? "dark" : "light";
-  // #region agent log
-  fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '4e9209',
-    },
-    body: JSON.stringify({
-      sessionId: '4e9209',
-      runId: 'initial',
-      hypothesisId: 'H3',
-      location: 'components/RouteWalking.tsx:31',
-      message: 'RouteWalking LineLayer render',
-      data: { coordCount: coordinates.length },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
   const features: GeoJSON.FeatureCollection = useMemo(() => {
     return {

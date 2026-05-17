@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Outfit_100Thin } from '@expo-google-fonts/outfit/100Thin';
 import { Outfit_200ExtraLight } from '@expo-google-fonts/outfit/200ExtraLight';
@@ -10,12 +10,8 @@ import { Outfit_700Bold } from '@expo-google-fonts/outfit/700Bold';
 import { Outfit_800ExtraBold } from '@expo-google-fonts/outfit/800ExtraBold';
 import { Outfit_900Black } from '@expo-google-fonts/outfit/900Black';
 import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-
-// #region agent log
-fetch('http://127.0.0.1:7892/ingest/fb625c74-31ba-4592-9644-25e01b78d2b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da868'},body:JSON.stringify({sessionId:'4da868',runId:'pre-fix',hypothesisId:'build-vs-runtime',location:'app/_layout.tsx:21',message:'Root layout mounted',data:{platform:'ios'},timestamp:Date.now()})}).catch(()=>{});
-// #endregion
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({
@@ -27,26 +23,42 @@ export default function RootStackLayout() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState();
   const router = useRouter();
-
-  // Handle user state changes
-  function handleAuthStateChanged(user: any) {
-    setUser(user);
-    if (initializing) setInitializing(false);
-  }
+  const segments = useSegments();
+  const didInitialRoute = useRef(false);
 
   useEffect(() => {
-    const subscriber = onAuthStateChanged(getAuth(), handleAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
+    const subscriber = onAuthStateChanged(getAuth(), (authUser) => {
+      setUser(authUser);
+      setInitializing(false);
+    });
+    return subscriber;
   }, []);
 
   useEffect(() => {
-    if (!initializing) {
-      if (user) router.navigate("/home/map")
-      setTimeout(() => {
-        SplashScreen.hide();
-      }, 1000);
+    if (initializing) {
+      return;
     }
-  }, [initializing])
+
+    const splashTimer = setTimeout(() => {
+      SplashScreen.hide();
+    }, 1000);
+
+    // Route once after auth is ready. Do not skip phone/register onboarding flows.
+    if (!didInitialRoute.current) {
+      didInitialRoute.current = true;
+      const onHome = segments[0] === "home";
+      const inOnboardingFlow =
+        segments[0] === "register" ||
+        segments[0] === "otp" ||
+        segments[0] === "phone_number" ||
+        segments[0] === "login";
+      if (user && !onHome && !inOnboardingFlow) {
+        router.replace("/home/map");
+      }
+    }
+
+    return () => clearTimeout(splashTimer);
+  }, [initializing, user, segments]);
 
   let [fontsLoaded] = useFonts({
     Outfit_100Thin, 

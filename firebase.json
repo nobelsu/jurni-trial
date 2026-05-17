@@ -1,5 +1,11 @@
 {
   "$schema": "./node_modules/@react-native-firebase/app/firebase-schema.json",
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "functions": {
     "source": "functions"
   }

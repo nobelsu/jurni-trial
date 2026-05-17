@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, useColorScheme, ActivityIndicator, Dimensions, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, useColorScheme, ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import firestore from "@react-native-firebase/firestore";
 import { Colors } from "../../../../constants/Colors";
 import StyleDefault from "../../../../constants/DefaultStyles";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type { Ride } from "../../../../lib/rides";
-import { getRideTypeDisplayName, parseRouteCoordinates } from "../../../../lib/rides";
+import { getRideTypeDisplayName, parseRideSecret, parseRouteCoordinates } from "../../../../lib/rides";
 import { MAPBOX_ACCESS_TOKEN, obtainDirections, Position, DrivingDirectionsResult } from "../../../../lib/mapbox";
 import { MapView, Camera, setAccessToken, MarkerView } from "@rnmapbox/maps";
 import Route from "../../../../components/Route";
@@ -28,6 +28,7 @@ import { faCircleDot } from "@fortawesome/free-solid-svg-icons/faCircleDot";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons/faLocationDot";
 import { faStar } from "@fortawesome/free-solid-svg-icons/faStar";
 import { setOrUpdateRideRating } from "../../../../lib/drivers";
+import { subscribeDriverProfile } from "../../../../lib/driverProfile";
 import RouteEndpointPin from "../../../../components/RouteEndpointPin";
 
 function formatDateTime(timestamp: FirebaseFirestoreTypes.Timestamp | null): string {
@@ -60,8 +61,12 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+const COLLAPSED_SNAP_HEIGHT = 260;
+const EXPANDED_SNAP_HEIGHT = 500;
+
 interface RideDetailsSheetContentProps {
   ride: Ride;
+  driverName: string | null;
   onDeleteRide: () => void;
   deleting: boolean;
   deleteError: string | null;
@@ -73,6 +78,7 @@ interface RideDetailsSheetContentProps {
 
 function RideDetailsSheetContent({
   ride,
+  driverName,
   onDeleteRide,
   deleting,
   deleteError,
@@ -92,6 +98,18 @@ function RideDetailsSheetContent({
   // snap 1 → "100%" with topInset 150, top edge ≈ 150
   const opacity = useSharedValue(1);
   const otherOpacity = useSharedValue(0);
+
+  const collapsedAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  const expandedAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: otherOpacity.value,
+  }));
+
+  const hintAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(opacity.value, [0, 0.35], [0, 1], Extrapolation.CLAMP),
+  }));
 
   useAnimatedReaction(
     () => animatedPosition.value,
@@ -115,7 +133,8 @@ function RideDetailsSheetContent({
       {/* Collapsed summary – fades out as sheet expands */}
       <Animated.View
         style={[
-          { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, opacity: opacity},
+          { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
+          collapsedAnimatedStyle,
         ]}
       >
         <View
@@ -199,7 +218,7 @@ function RideDetailsSheetContent({
             </View>
           </View>
         </View>
-        <View style={{ marginTop: 12, alignItems: "center" }}>
+        <Animated.View style={[{ marginTop: 12, alignItems: "center" }, hintAnimatedStyle]}>
           <Text
             style={{
               ...defaultStyles.subtitle,
@@ -209,7 +228,7 @@ function RideDetailsSheetContent({
           >
             Drag up for more details
           </Text>
-        </View>
+        </Animated.View>
       </Animated.View>
 
       {/* Expanded details – fade in as sheet reaches full */}
@@ -223,11 +242,10 @@ function RideDetailsSheetContent({
             left: 0,
             right: 0,
             top: 0,
-            opacity: otherOpacity,
           },
+          expandedAnimatedStyle,
         ]}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
           <View
             style={{
               ...defaultStyles.largeCard,
@@ -316,7 +334,7 @@ function RideDetailsSheetContent({
               />
               <DetailRow
                 label="Driver"
-                value={ride.driver_id || "—"}
+                value={driverName ?? "—"}
               />
               <DetailRow
                 label="Requested at"
@@ -425,7 +443,6 @@ function RideDetailsSheetContent({
               </View>
             ) : null}
           </View>
-        </ScrollView>
       </Animated.View>
     </>
   );
@@ -448,10 +465,12 @@ export default function RideDetailsScreen() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingStatus, setRatingStatus] = useState<string | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [driverName, setDriverName] = useState<string | null>(null);
 
   const cameraRef = useRef<Camera | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
+  const [sheetIndex, setSheetIndex] = useState(0);
 
   useEffect(() => {
       setStyleLoaded(false);
@@ -483,6 +502,7 @@ export default function RideDetailsScreen() {
               type_id: d.type_id ?? "basic",
               price: typeof d.price === "number" ? d.price : 0,
               status: d.status ?? "",
+              secret: parseRideSecret(d.secret),
               driver_id:
                 typeof d.driver_id === "string" && d.driver_id.length > 0
                   ? d.driver_id
@@ -512,6 +532,16 @@ export default function RideDetailsScreen() {
       );
     return () => unsubscribe();
   }, [id]);
+
+  useEffect(() => {
+    if (!ride?.driver_id) {
+      setDriverName(null);
+      return;
+    }
+    return subscribeDriverProfile(ride.driver_id, (profile) => {
+      setDriverName(profile.name);
+    });
+  }, [ride?.driver_id]);
 
   const hasStoredRoute =
     !!ride?.route_coordinates && ride.route_coordinates.length > 1;
@@ -764,19 +794,26 @@ export default function RideDetailsScreen() {
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
-        snapPoints={[260, 500]}
+        snapPoints={[COLLAPSED_SNAP_HEIGHT, EXPANDED_SNAP_HEIGHT]}
         topInset={150}
         backgroundStyle={{ backgroundColor: colors.bgDark }}
         handleIndicatorStyle={{ backgroundColor: colors.text }}
         onChange={(idx) => {
+          setSheetIndex(idx);
           if (!bounds || !cameraRef.current) return;
-          if (idx === 0)cameraRef.current.fitBounds(bounds.ne, bounds.sw, [70, 70, 280, 70], 800);
+          if (idx === 0) cameraRef.current.fitBounds(bounds.ne, bounds.sw, [70, 70, 280, 70], 800);
           else cameraRef.current.fitBounds(bounds.ne, bounds.sw, [70, 70, 520, 70], 800);
         }}
       >
-        <BottomSheetScrollView>
+        <BottomSheetScrollView
+          contentContainerStyle={
+            sheetIndex === 1 ? { minHeight: EXPANDED_SNAP_HEIGHT + 120 } : undefined
+          }
+          showsVerticalScrollIndicator={false}
+        >
           <RideDetailsSheetContent
             ride={ride}
+            driverName={driverName}
             onDeleteRide={handleDeleteRide}
             deleting={deleting}
             deleteError={deleteError}
